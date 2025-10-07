@@ -12,8 +12,6 @@ The app, as it stands now, works but has no real use case. For now, it just disp
 
 - Image appearance: some images get cropped because I hardcoded the size of each element in the canvas. I need to add logic to make it dynamic because not every image has the same aspect ratio. 
 
-- Image quality: improve the image quality to match as closely as possible the quality found on the official Pinterest website or app.
-
 - Once the image quality issue is solved, add a downloader. For now, I am aiming for images only, but video downloads will come later.
 
 - Add support for videos. This is already implemented, but during testing, no videos were shown. It needs more work.
