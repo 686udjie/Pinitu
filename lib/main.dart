@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import 'models/pin.dart';
 import 'parsers/pinterest_parser.dart';
@@ -219,14 +220,11 @@ class _FeedGridState extends State<FeedGrid> {
         onRefresh: () async {
           await _loadMore(reset: true);
         },
-        child: GridView.builder(
+        child: MasonryGridView.count(
           padding: const EdgeInsets.all(8),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 0.7,
-          ),
+          crossAxisCount: 2,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
           itemCount: _pins.length,
           itemBuilder: (context, index) {
             final pin = _pins[index];

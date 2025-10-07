@@ -14,7 +14,47 @@ class PinterestParser {
       final src = img.attributes['src'] ?? img.attributes['data-src'] ?? '';
       if (src.isEmpty) continue;
       final title = img.attributes['alt'];
-      final pin = PinItem(id: src.hashCode.toString(), mediaUrl: src, title: title, isVideo: false);
+      
+      // Try to extract dimensions from various attributes
+      int? width;
+      int? height;
+      
+      // Check for width and height attributes
+      final widthStr = img.attributes['width'];
+      final heightStr = img.attributes['height'];
+      
+      if (widthStr != null && heightStr != null) {
+        width = int.tryParse(widthStr);
+        height = int.tryParse(heightStr);
+      }
+      
+      // Check for style attribute with dimensions
+      if (width == null || height == null) {
+        final style = img.attributes['style'] ?? '';
+        final widthMatch = RegExp(r'width:\s*(\d+)px').firstMatch(style);
+        final heightMatch = RegExp(r'height:\s*(\d+)px').firstMatch(style);
+        
+        if (widthMatch != null) width = int.tryParse(widthMatch.group(1)!);
+        if (heightMatch != null) height = int.tryParse(heightMatch.group(1)!);
+      }
+      
+      // Check for data attributes that might contain dimensions
+      if (width == null || height == null) {
+        final dataWidth = img.attributes['data-width'];
+        final dataHeight = img.attributes['data-height'];
+        
+        if (dataWidth != null) width = int.tryParse(dataWidth);
+        if (dataHeight != null) height = int.tryParse(dataHeight);
+      }
+      
+      final pin = PinItem(
+        id: src.hashCode.toString(), 
+        mediaUrl: src, 
+        title: title, 
+        isVideo: false,
+        width: width,
+        height: height,
+      );
       final canon = pin.canonicalUrl;
       if (unique.add(canon)) {
         items.add(pin);
@@ -29,7 +69,26 @@ class PinterestParser {
         src = sources.firstWhereOrNull((s) => (s.attributes['type'] ?? '').contains('video'))?.attributes['src'];
       }
       if (src == null || src.isEmpty) continue;
-      final pin = PinItem(id: src.hashCode.toString(), mediaUrl: src, isVideo: true);
+      
+      // Try to extract video dimensions
+      int? width;
+      int? height;
+      
+      final widthStr = video.attributes['width'];
+      final heightStr = video.attributes['height'];
+      
+      if (widthStr != null && heightStr != null) {
+        width = int.tryParse(widthStr);
+        height = int.tryParse(heightStr);
+      }
+      
+      final pin = PinItem(
+        id: src.hashCode.toString(), 
+        mediaUrl: src, 
+        isVideo: true,
+        width: width,
+        height: height,
+      );
       final canon = pin.canonicalUrl;
       if (unique.add(canon)) {
         items.add(pin);
