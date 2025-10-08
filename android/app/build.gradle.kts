@@ -8,8 +8,8 @@ plugins {
 android {
     namespace = "com.mousica.pinitu"
     compileSdk = flutter.compileSdkVersion
-    // Pin a stable NDK to avoid issues with NDK 27 on Apple Silicon
-    ndkVersion = "26.1.10909125"
+    // bump
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
