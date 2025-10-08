@@ -1,11 +1,10 @@
-// TO DO: rewrite this file and remove logout button at the bottom right
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models/pin.dart';
 import 'parsers/pinterest_parser.dart';
@@ -296,11 +295,13 @@ class _SearchPageState extends State<SearchPage> {
   bool _initialized = false;
   bool _hasSearched = false;
   final TextEditingController _searchController = TextEditingController();
+  final List<String> _searchHistory = <String>[];
 
   @override
   void initState() {
     super.initState();
     _init();
+    _loadSearchHistory();
   }
 
   @override
@@ -324,8 +325,42 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
+  Future<void> _loadSearchHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyList = prefs.getStringList('search_history') ?? [];
+      _searchHistory.clear();
+      _searchHistory.addAll(historyList);
+      setState(() {});
+    } catch (e) {
+      _searchHistory.clear();
+      setState(() {});
+    }
+  }
+
+  Future<void> _saveSearchHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('search_history', _searchHistory);
+    } catch (e) {}
+  }
+
+  void _addToSearchHistory(String query) {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isNotEmpty && !_searchHistory.contains(trimmedQuery)) {
+      _searchHistory.insert(0, trimmedQuery);
+      if (_searchHistory.length > 10) {
+        _searchHistory.removeLast();
+      }
+      _saveSearchHistory();
+    }
+  }
+
   Future<void> _performSearch(String query) async {
     if (query.trim().isEmpty || _loading) return;
+    
+    // Add to search history immediately when Enter is pressed
+    _addToSearchHistory(query);
     
     setState(() {
       _loading = true;
@@ -354,6 +389,26 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
+  void _clearSearchHistory() async {
+    _searchHistory.clear();
+    setState(() {});
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('search_history');
+    } catch (e) {}
+  }
+
+  void _removeFromHistory(String query) {
+    _searchHistory.remove(query);
+    setState(() {});
+    _saveSearchHistory();
+  }
+
+  void _selectHistoryItem(String query) {
+    _searchController.text = query;
+    _performSearch(query);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
@@ -374,11 +429,10 @@ class _SearchPageState extends State<SearchPage> {
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _searchController.clear();
-                        setState(() {
-                          _searchResults.clear();
-                          _seenUrls.clear();
-                          _hasSearched = false;
-                        });
+                        _searchResults.clear();
+                        _seenUrls.clear();
+                        _hasSearched = false;
+                        setState(() {});
                       },
                     )
                   : null,
@@ -390,30 +444,56 @@ class _SearchPageState extends State<SearchPage> {
             onChanged: (_) => setState(() {}),
           ),
         ),
-        Expanded(
-          child: _buildSearchContent(),
-        ),
+        // Clear History Button
+        if (_searchHistory.isNotEmpty && !_hasSearched)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: _clearSearchHistory,
+                  icon: const Icon(Icons.clear_all, size: 16),
+                  label: const Text('Clear History'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // Search History
+        if (_searchHistory.isNotEmpty && !_hasSearched)
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              itemCount: _searchHistory.length,
+              itemBuilder: (context, index) {
+                final query = _searchHistory[index];
+                return ListTile(
+                  leading: const Icon(Icons.history, color: Colors.grey),
+                  title: Text(query),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => _removeFromHistory(query),
+                    color: Colors.grey[600],
+                  ),
+                  onTap: () => _selectHistoryItem(query),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+                );
+              },
+            ),
+          ),
+        // Search Results
+        if (_hasSearched)
+          Expanded(
+            child: _buildSearchContent(),
+          ),
       ],
     );
   }
 
   Widget _buildSearchContent() {
-    if (!_hasSearched) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Search for pins',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
