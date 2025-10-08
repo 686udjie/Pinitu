@@ -1,4 +1,4 @@
-package com.example.pinitu
+package com.mousica.pinitu
 
 import io.flutter.embedding.android.FlutterActivity
 
