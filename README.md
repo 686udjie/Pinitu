@@ -22,13 +22,11 @@ The app, as it stands now, works but has no real use case. For now, it just disp
 
 - Add theme options (Material, dark/light mode sync with the system) and add color presets for iOS users because Material theming may not work properly on iOS.
 
-# Contributing
+# Build Instructions
 
 ## Dependencies
 
 This project requires **Flutter** to be installed on your system
-
-## Build Instructions
 
 ### Clone the Repository
 ```bash
@@ -52,5 +50,7 @@ This will generate an `.ipa` file in `build/ios/ipa/`
 flutter build apk --release
 ```
 This will generate an `.apk` file in `build/app/outputs/flutter-apk/`
+
+# Contributing
 
 All contributions are wholeheartedly welcomed!
