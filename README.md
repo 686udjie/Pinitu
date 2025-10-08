@@ -10,20 +10,47 @@ The app, as it stands now, works but has no real use case. For now, it just disp
 
 - The image quality is very inconsistent. The goal is to achieve the same quality as what you find on Pinterest, which should be possible with the logic I currently have.
 
-- Image appearance: some images get cropped because I hardcoded the size of each element in the canvas. I need to add logic to make it dynamic because not every image has the same aspect ratio. 
+~~Image appearance: some images get cropped because I hardcoded the size of each element in the canvas. I need to add logic to make it dynamic because not every image has the same aspect ratio.~~ DONE
 
 - Once the image quality issue is solved, add a downloader. For now, I am aiming for images only, but video downloads will come later.
 
 - Add support for videos. This is already implemented, but during testing, no videos were shown. It needs more work.
 
-- Add a search feature.
+~~Add a search feature.~~ DONE
 
-- Remove the logout button on the home feed and replace it with navigation buttons (e.g., settings, saved pins, etc.).
+~~Remove the logout button on the home feed and replace it with navigation buttons (e.g., settings, saved pins, etc.).~~ DONE
 
 - Add theme options (Material, dark/light mode sync with the system) and add color presets for iOS users because Material theming may not work properly on iOS.
 
 # Contributing
 
-This section will be added after I refactor the project. This initial release is a proof of concept.
+## Dependencies
+
+This project requires **Flutter** to be installed on your system
+
+## Build Instructions
+
+### Clone the Repository
+```bash
+git clone https://github.com/686udjie/Pinitu.git
+cd pinitu
+```
+
+### Install Dependencies
+```bash
+flutter pub get
+```
+
+### Build for iOS
+```bash
+flutter build ios --release # add --no-codesign to leave it unsigned
+```
+This will generate an `.ipa` file in `build/ios/ipa/`
+
+### Build for Android
+```bash
+flutter build apk --release
+```
+This will generate an `.apk` file in `build/app/outputs/flutter-apk/`
 
 All contributions are wholeheartedly welcomed!
