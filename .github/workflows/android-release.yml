@@ -29,10 +29,11 @@ jobs:
       - name: Build release APK (unsigned)
         run: flutter build apk --release
 
-      - name: Upload artifact
+      - name: Rename APK to Pinitu.apk
+        run: mv build/app/outputs/flutter-apk/app-release.apk Pinitu.apk
+
+      - name: Upload Pinitu.apk
         uses: actions/upload-artifact@v4
         with:
-          name: android-release-apk
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/apk/release/*.apk
+          name: Pinitu.apk
+          path: Pinitu.apk

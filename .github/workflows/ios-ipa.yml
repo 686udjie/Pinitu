@@ -26,20 +26,13 @@ jobs:
       - name: Build unsigned IPA (no code signing)
         run: flutter build ipa --release --no-codesign
 
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-ipa-unsigned
-          path: build/ios/ipa/*.ipa
-
-      - name: Build iOS simulator app (debug)
+      - name: Rename IPA to Pinitu.ipa
         run: |
-          flutter build ios --simulator --debug
-          cd build/ios/iphonesimulator
-          zip -r Runner.app.zip Runner.app
+          IPA_PATH=$(ls build/ios/ipa/*.ipa | head -n 1)
+          mv "$IPA_PATH" Pinitu.ipa
 
-      - name: Upload Simulator artifact
+      - name: Upload Pinitu.ipa
         uses: actions/upload-artifact@v4
         with:
-          name: ios-simulator-app
-          path: build/ios/iphonesimulator/Runner.app.zip
+          name: Pinitu.ipa
+          path: Pinitu.ipa

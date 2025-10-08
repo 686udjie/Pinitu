@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.pinitu"
+    namespace = "com.mousica.pinitu"
     compileSdk = flutter.compileSdkVersion
     // Pin a stable NDK to avoid issues with NDK 27 on Apple Silicon
     ndkVersion = "26.1.10909125"
@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.pinitu"
+        applicationId = "com.mousica.pinitu"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
