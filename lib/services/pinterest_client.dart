@@ -51,4 +51,14 @@ class PinterestClient {
     );
     return res.data ?? '';
   }
+
+  Future<String> fetchSearchHtml(String query) async {
+    final res = await _dio.get<String>(
+      '/search/pins/',
+      queryParameters: {
+        'q': query,
+      },
+    );
+    return res.data ?? '';
+  }
 }
