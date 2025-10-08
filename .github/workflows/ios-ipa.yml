@@ -2,9 +2,6 @@ name: iOS IPA
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   build-ipa:
@@ -36,10 +33,21 @@ jobs:
         run: |
           flutter build ios --release --no-codesign
 
-      - name: Install zsign
+          - name: Install zsign (build from source)
         run: |
+          set -euo pipefail
           brew update
-          brew install zsign
+          brew install openssl@3 libplist
+          git clone --depth=1 https://github.com/zhlynn/zsign.git /tmp/zsign
+          pushd /tmp/zsign
+          OPENSSL_PREFIX="$(brew --prefix openssl@3)"
+          LIBPLIST_PREFIX="$(brew --prefix libplist)"
+          make -j"$(sysctl -n hw.ncpu)" OPENSSL="$OPENSSL_PREFIX" LIBPLIST="$LIBPLIST_PREFIX"
+          mkdir -p "$HOME/.local/bin"
+          install -m 0755 zsign "$HOME/.local/bin/zsign"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          popd
+          zsign -v
 
       - name: Prepare signing materials
         env:
@@ -48,10 +56,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p signing
-          if [ -z "${IOS_P12_BASE64:-}" ]; then echo "Missing secret IOS_P12_BASE64" >&2; exit 1; fi
-          if [ -z "${IOS_MOBILEPROVISION_BASE64:-}" ]; then echo "Missing secret IOS_MOBILEPROVISION_BASE64" >&2; exit 1; fi
-          echo "$IOS_P12_BASE64" | base64 --decode > signing/cert.p12
-          echo "$IOS_MOBILEPROVISION_BASE64" | base64 --decode > signing/app.mobileprovision
+          P12_BASE64="${P12_BASE64_A:-${P12_BASE64_B:-}}"
+          PROFILE_BASE64="${PROFILE_BASE64_A:-${PROFILE_BASE64_B:-}}"
+          if [ -z "${P12_BASE64:-}" ]; then echo "Missing P12 certificate secret (P12_CERTIFICATE or IOS_P12_BASE64)" >&2; exit 1; fi
+          if [ -z "${PROFILE_BASE64:-}" ]; then echo "Missing provisioning profile secret (PROVISIONING_PROFILE or IOS_MOBILEPROVISION_BASE64)" >&2; exit 1; fi
+          echo "$P12_BASE64" | base64 --decode > signing/cert.p12
+          echo "$PROFILE_BASE64" | base64 --decode > signing/app.mobileprovision
           ls -lah signing
 
       - name: Resign and package .ipa with zsign
@@ -88,5 +98,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Pinitu-ipa
-          path: Pinitu-signed.ipa
+          path: Pinitu-ios.ipa
           if-no-files-found: error
