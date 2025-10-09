@@ -31,3 +31,6 @@ class CookieStore {
     return parts.join('; ');
   }
 }
+// TODO: Improve caching and add preload req logic 
+// to reduce load times when switching betwen tabs or scrolling 
+// for new images.

@@ -30,6 +30,11 @@ class PinterestClient {
     return PinterestClient._(dio);
   }
 
+  Future<String> fetchProfileHtml() async {
+    final res = await _dio.get<String>('/');
+    return res.data ?? '';
+  }
+
   Future<String> fetchHomeHtml() async {
     final res = await _dio.get<String>('/');
     return res.data ?? '';

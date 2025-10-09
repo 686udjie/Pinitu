@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../widgets/feed_grid.dart';
 import '../widgets/search_page.dart';
+import '../widgets/settings_page.dart';
 import 'pinterest_login_webview_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -81,6 +82,7 @@ class _HomePageState extends State<HomePage> {
     final List<Widget> pages = [
       const FeedGrid(),
       const SearchPage(),
+      const SettingsPage(),
     ];
 
     return Scaffold(
@@ -90,7 +92,11 @@ class _HomePageState extends State<HomePage> {
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              _selectedIndex == 0 ? 'Home' : 'Search',
+              _selectedIndex == 0
+                  ? 'Home'
+                  : _selectedIndex == 1
+                      ? 'Search'
+                      : 'Settings',
               style: const TextStyle(fontSize: 20),
             ),
           ),
