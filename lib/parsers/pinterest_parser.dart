@@ -12,8 +12,13 @@ class PinterestParser {
 
     bool _isLikelyAvatarUrl(String url) {
       // regex to find avatar urls
-      final avatarSizePattern = RegExp(r"/(60x60|75x75|120x120|140x140|170x|280x280)_RS/");
-      return avatarSizePattern.hasMatch(url) || url.contains('avatar') || url.contains('profile') || url.contains('userimage');
+      final avatarSizePattern = RegExp(
+        r"/(60x60|75x75|120x120|140x140|170x|280x280)_RS/",
+      );
+      return avatarSizePattern.hasMatch(url) ||
+          url.contains('avatar') ||
+          url.contains('profile') ||
+          url.contains('userimage');
     }
 
     // this was added to differentiate from the avatar url. without this the avator would appear
@@ -29,7 +34,10 @@ class PinterestParser {
 
     int? _tryParseInt(String? s) => s == null ? null : int.tryParse(s);
 
-    void _extractDimensionsFromAttributes(Map<Object, String> attrs, void Function(int? w, int? h) setDims) {
+    void _extractDimensionsFromAttributes(
+      Map<Object, String> attrs,
+      void Function(int? w, int? h) setDims,
+    ) {
       int? width;
       int? height;
       final widthStr = attrs['width'];
@@ -72,12 +80,19 @@ class PinterestParser {
           String? src = video.attributes['src'];
           if (src == null || src.isEmpty) {
             final sources = video.getElementsByTagName('source');
-            src = sources.firstWhereOrNull((s) => (s.attributes['type'] ?? '').contains('video'))?.attributes['src'];
+            src = sources
+                .firstWhereOrNull(
+                  (s) => (s.attributes['type'] ?? '').contains('video'),
+                )
+                ?.attributes['src'];
           }
           if (src == null || src.isEmpty) continue;
           int? w;
           int? h;
-          _extractDimensionsFromAttributes(video.attributes, (x, y) { w = x; h = y; });
+          _extractDimensionsFromAttributes(video.attributes, (x, y) {
+            w = x;
+            h = y;
+          });
           final pin = PinItem(
             id: pinId ?? src.hashCode.toString(),
             mediaUrl: src,
@@ -99,7 +114,10 @@ class PinterestParser {
         final title = img.attributes['alt'];
         int? w;
         int? h;
-        _extractDimensionsFromAttributes(img.attributes, (x, y) { w = x; h = y; });
+        _extractDimensionsFromAttributes(img.attributes, (x, y) {
+          w = x;
+          h = y;
+        });
         final pin = PinItem(
           id: pinId ?? src.hashCode.toString(),
           mediaUrl: src,
@@ -124,7 +142,10 @@ class PinterestParser {
         final title = img.attributes['alt'];
         int? w;
         int? h;
-        _extractDimensionsFromAttributes(img.attributes, (x, y) { w = x; h = y; });
+        _extractDimensionsFromAttributes(img.attributes, (x, y) {
+          w = x;
+          h = y;
+        });
         final pin = PinItem(
           id: src.hashCode.toString(),
           mediaUrl: src,
@@ -143,12 +164,19 @@ class PinterestParser {
         String? src = video.attributes['src'];
         if (src == null || src.isEmpty) {
           final sources = video.getElementsByTagName('source');
-          src = sources.firstWhereOrNull((s) => (s.attributes['type'] ?? '').contains('video'))?.attributes['src'];
+          src = sources
+              .firstWhereOrNull(
+                (s) => (s.attributes['type'] ?? '').contains('video'),
+              )
+              ?.attributes['src'];
         }
         if (src == null || src.isEmpty) continue;
         int? w;
         int? h;
-        _extractDimensionsFromAttributes(video.attributes, (x, y) { w = x; h = y; });
+        _extractDimensionsFromAttributes(video.attributes, (x, y) {
+          w = x;
+          h = y;
+        });
         final pin = PinItem(
           id: src.hashCode.toString(),
           mediaUrl: src,
@@ -180,20 +208,24 @@ class PinterestParser {
     }
 
     // Username
-    username = _matchFirst(RegExp(r'"username"\s*:\s*"([^"]+)"')) ??
+    username =
+        _matchFirst(RegExp(r'"username"\s*:\s*"([^"]+)"')) ??
         _matchFirst(RegExp(r'"user_name"\s*:\s*"([^"]+)"'));
 
     // Full name (nickname would work??)
-    fullName = _matchFirst(RegExp(r'"full_name"\s*:\s*"([^"]+)"')) ??
+    fullName =
+        _matchFirst(RegExp(r'"full_name"\s*:\s*"([^"]+)"')) ??
         _matchFirst(RegExp(r'"fullName"\s*:\s*"([^"]+)"')) ??
         _matchFirst(RegExp(r'"name"\s*:\s*"([^"]+)"'));
 
     // Bio
-    bio = _matchFirst(RegExp(r'"about"\s*:\s*"([^"]*)"')) ??
+    bio =
+        _matchFirst(RegExp(r'"about"\s*:\s*"([^"]*)"')) ??
         _matchFirst(RegExp(r'"bio"\s*:\s*"([^"]*)"'));
 
     // Avatar keys (i tried to make it robust, it works but idk if i had to add 6 options)
-    avatarUrl = _matchFirst(RegExp(r'"image_xlarge_url"\s*:\s*"(https?:[^"\\]+)"')) ??
+    avatarUrl =
+        _matchFirst(RegExp(r'"image_xlarge_url"\s*:\s*"(https?:[^"\\]+)"')) ??
         _matchFirst(RegExp(r'"image_large_url"\s*:\s*"(https?:[^"\\]+)"')) ??
         _matchFirst(RegExp(r'"image_medium_url"\s*:\s*"(https?:[^"\\]+)"')) ??
         _matchFirst(RegExp(r'"image_small_url"\s*:\s*"(https?:[^"\\]+)"')) ??

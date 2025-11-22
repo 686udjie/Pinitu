@@ -8,12 +8,12 @@ class PinterestLoginWebViewPage extends StatefulWidget {
   const PinterestLoginWebViewPage({super.key});
 
   @override
-  State<PinterestLoginWebViewPage> createState() => _PinterestLoginWebViewPageState();
+  State<PinterestLoginWebViewPage> createState() =>
+      _PinterestLoginWebViewPageState();
 }
 
 class _PinterestLoginWebViewPageState extends State<PinterestLoginWebViewPage> {
   static const _secureStorage = FlutterSecureStorage();
-  late final InAppWebViewController _controller;
   bool _isLoggedIn = false;
 
   final Uri _loginUrl = Uri.parse('https://www.pinterest.com/login/');
@@ -26,10 +26,14 @@ class _PinterestLoginWebViewPageState extends State<PinterestLoginWebViewPage> {
     final path = url.path;
 
     if (host.contains('pinterest.com') && !path.startsWith('/login')) {
-      final cookies = await CookieManager.instance().getCookies(url: WebUri(_rootUrl.toString()));
+      final cookies = await CookieManager.instance().getCookies(
+        url: WebUri(_rootUrl.toString()),
+      );
       if (cookies.isNotEmpty) {
-        final encoded = jsonEncode(cookies
-            .map((c) => {
+        final encoded = jsonEncode(
+          cookies
+              .map(
+                (c) => {
                   'name': c.name,
                   'value': c.value,
                   'domain': c.domain,
@@ -37,8 +41,10 @@ class _PinterestLoginWebViewPageState extends State<PinterestLoginWebViewPage> {
                   'expiresDate': c.expiresDate,
                   'isSecure': c.isSecure,
                   'isHttpOnly': c.isHttpOnly,
-                })
-            .toList());
+                },
+              )
+              .toList(),
+        );
         await _secureStorage.write(key: 'pinterest_cookies', value: encoded);
         if (mounted && !_isLoggedIn) {
           setState(() {
@@ -62,7 +68,7 @@ class _PinterestLoginWebViewPageState extends State<PinterestLoginWebViewPage> {
           thirdPartyCookiesEnabled: true,
         ),
         onWebViewCreated: (controller) {
-          _controller = controller;
+          // Controller available if needed for future use
         },
         onLoadStop: (controller, url) async {
           await _checkAndCaptureCookies(url);

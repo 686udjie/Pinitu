@@ -23,4 +23,20 @@ mixin PreferencesHandler {
       await prefs.remove(key);
     } catch (e) {}
   }
+
+  Future<void> saveThemeMode(String mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('theme_mode', mode);
+    } catch (e) {}
+  }
+
+  Future<String> loadThemeMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('theme_mode') ?? 'system';
+    } catch (e) {
+      return 'system';
+    }
+  }
 }
