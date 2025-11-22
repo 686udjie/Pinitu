@@ -12,7 +12,7 @@ The app, as it stands now, works but has no real use case. For now, it just disp
 
 ~~Image appearance: some images get cropped because I hardcoded the size of each element in the canvas. I need to add logic to make it dynamic because not every image has the same aspect ratio.~~ DONE
 
-- Once the image quality issue is solved, add a downloader. For now, I am aiming for images only, but video downloads will come later.
+~~Once the image quality issue is solved, add a downloader. For now, I am aiming for images only, but video downloads will come later.~~ DONE (vids will come in the future)
 
 - Add support for videos. This is already implemented, but during testing, no videos were shown. It needs more work.
 
@@ -20,7 +20,7 @@ The app, as it stands now, works but has no real use case. For now, it just disp
 
 ~~Remove the logout button on the home feed and replace it with navigation buttons (e.g., settings, saved pins, etc.).~~ DONE
 
-- Add theme options (Material, dark/light mode sync with the system) and add color presets for iOS users because Material theming may not work properly on iOS.
+~~Add theme options (Material, dark/light mode sync with the system) and add color presets for iOS users because Material theming may not work properly on iOS.~~ DONE (partial, need to add presets for iOS)
 
 # Build Instructions
 
