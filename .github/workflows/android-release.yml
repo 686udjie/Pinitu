@@ -35,3 +35,14 @@ jobs:
         with:
           name: Pinitu.apk
           path: Pinitu.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Pinitu.apk
+          tag_name: android-${{ github.run_number }}
+          name: Android Build ${{ github.run_number }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
