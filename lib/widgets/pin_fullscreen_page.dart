@@ -123,7 +123,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage> {
           ),
         ],
       ),
-      body: Center(
+      body: SizedBox.expand(
         child: widget.pin.isVideo ? _buildVideoView() : _buildImageView(),
       ),
     );
@@ -149,9 +149,13 @@ class _PinFullscreenPageState extends State<PinFullscreenPage> {
     if (!_videoInitialized || _videoController == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return AspectRatio(
-      aspectRatio: _videoController!.value.aspectRatio,
-      child: VideoPlayer(_videoController!),
+    return FittedBox(
+      fit: BoxFit.contain,
+      child: SizedBox(
+        width: _videoController!.value.size.width,
+        height: _videoController!.value.size.height,
+        child: VideoPlayer(_videoController!),
+      ),
     );
   }
 }
