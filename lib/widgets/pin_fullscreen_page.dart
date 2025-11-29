@@ -22,6 +22,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
   VideoPlayerController? _videoController;
   bool _videoInitialized = false;
   bool _isPlaying = false;
+  bool _isMuted = false;
   bool _showNotification = false;
   String _notificationMessage = '';
   IconData _notificationIcon = Icons.download;
@@ -51,6 +52,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
     await controller.initialize();
     controller.setVolume(1.0);
     controller.setLooping(true);
+    _isMuted = false;
     setState(() {
       _videoController = controller;
       _videoInitialized = true;
@@ -69,6 +71,14 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
         _videoController!.play();
         _isPlaying = true;
       }
+    });
+  }
+
+  void _toggleMute() {
+    if (_videoController == null) return;
+    setState(() {
+      _isMuted = !_isMuted;
+      _videoController!.setVolume(_isMuted ? 0.0 : 1.0);
     });
   }
 
@@ -175,6 +185,14 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
             icon: const Icon(Icons.download, color: Colors.white),
             onPressed: _downloadMedia,
           ),
+          if (widget.pin.isVideo)
+            IconButton(
+              icon: Icon(
+                _isMuted ? Icons.volume_off : Icons.volume_up,
+                color: Colors.white,
+              ),
+              onPressed: _toggleMute,
+            ),
         ],
       ),
       body: Stack(
