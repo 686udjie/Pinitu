@@ -1,10 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/pin.dart';
@@ -21,10 +18,12 @@ class PinTile extends StatefulWidget {
 class _PinTileState extends State<PinTile> {
   VideoPlayerController? _videoController;
   bool _videoInitialized = false;
+  late MethodChannel _channel;
 
   @override
   void initState() {
     super.initState();
+    _channel = const MethodChannel('com.mousica.pinitu/gallery');
     if (widget.pin.isVideo) {
       _ensureVideo();
     }
@@ -62,33 +61,7 @@ class _PinTileState extends State<PinTile> {
     messenger.showSnackBar(const SnackBar(content: Text('Downloading...')));
     try {
       if (widget.pin.isVideo) {
-        // For videos, save to gallery
-        final tempDir = await getTemporaryDirectory();
-        final uri = Uri.parse(widget.pin.mediaUrl);
-        final filename = uri.pathSegments.isNotEmpty
-            ? uri.pathSegments.last
-            : 'downloaded_video.mp4';
-        final tempPath = '${tempDir.path}/$filename';
-        await Dio().download(
-          widget.pin.mediaUrl,
-          tempPath,
-          options: Options(
-            headers: const {
-              'User-Agent':
-                  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            },
-          ),
-        );
-        final result = await ImageGallerySaver.saveFile(tempPath);
-        if (result['isSuccess']) {
-          messenger.showSnackBar(
-            const SnackBar(content: Text('Video saved to Gallery')),
-          );
-        } else {
-          throw Exception('Failed to save to gallery');
-        }
-      } else {
-        // For images, save to gallery
+        // Save video to gallery
         final response = await Dio().get(
           widget.pin.mediaUrl,
           options: Options(
@@ -99,15 +72,41 @@ class _PinTileState extends State<PinTile> {
             },
           ),
         );
-        final result = await ImageGallerySaver.saveImage(
-          Uint8List.fromList(response.data),
+        try {
+          await _channel.invokeMethod('saveToAlbum', {
+            'bytes': response.data,
+            'isVideo': true,
+            'albumName': 'Pinitu',
+          });
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Video saved to Gallery')),
+          );
+        } catch (e) {
+          messenger.showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+        }
+      } else {
+        // Save image to gallery
+        final response = await Dio().get(
+          widget.pin.mediaUrl,
+          options: Options(
+            responseType: ResponseType.bytes,
+            headers: const {
+              'User-Agent':
+                  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            },
+          ),
         );
-        if (result['isSuccess']) {
+        try {
+          await _channel.invokeMethod('saveToAlbum', {
+            'bytes': response.data,
+            'isVideo': false,
+            'albumName': 'Pinitu',
+          });
           messenger.showSnackBar(
             const SnackBar(content: Text('Image saved to Gallery')),
           );
-        } else {
-          throw Exception('Failed to save to gallery');
+        } catch (e) {
+          messenger.showSnackBar(SnackBar(content: Text('Failed to save: $e')));
         }
       }
     } catch (e) {
@@ -128,7 +127,7 @@ class _PinTileState extends State<PinTile> {
               ? AspectRatio(
                   aspectRatio: aspectRatio,
                   child: FittedBox(
-                    fit: BoxFit.fitWidth,
+                    fit: BoxFit.contain,
                     child: SizedBox(
                       width: _videoController!.value.size.width,
                       height: _videoController!.value.size.height,

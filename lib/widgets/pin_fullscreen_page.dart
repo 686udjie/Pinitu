@@ -1,10 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/pin.dart';
@@ -28,6 +25,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
   IconData _notificationIcon = Icons.download;
   late AnimationController _animationController;
   late Animation<Offset> _animation;
+  late MethodChannel _channel;
 
   @override
   void initState() {
@@ -40,6 +38,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
         .animate(
           CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
         );
+    _channel = const MethodChannel('com.mousica.pinitu/gallery');
     if (widget.pin.isVideo) {
       _initializeVideo();
     }
@@ -98,34 +97,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
     _animationController.forward();
     try {
       if (widget.pin.isVideo) {
-        // For videos, save to gallery
-        final tempDir = await getTemporaryDirectory();
-        final uri = Uri.parse(widget.pin.mediaUrl);
-        final filename = uri.pathSegments.isNotEmpty
-            ? uri.pathSegments.last
-            : 'downloaded_video.mp4';
-        final tempPath = '${tempDir.path}/$filename';
-        await Dio().download(
-          widget.pin.mediaUrl,
-          tempPath,
-          options: Options(
-            headers: const {
-              'User-Agent':
-                  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            },
-          ),
-        );
-        final result = await ImageGallerySaver.saveFile(tempPath);
-        if (result['isSuccess']) {
-          setState(() {
-            _notificationMessage = 'Video saved to Gallery';
-            _notificationIcon = Icons.check;
-          });
-        } else {
-          throw Exception('Failed to save to gallery');
-        }
-      } else {
-        // For images, save to gallery
+        // Save video to gallery
         final response = await Dio().get(
           widget.pin.mediaUrl,
           options: Options(
@@ -136,16 +108,49 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
             },
           ),
         );
-        final result = await ImageGallerySaver.saveImage(
-          Uint8List.fromList(response.data),
+        try {
+          await _channel.invokeMethod('saveToAlbum', {
+            'bytes': response.data,
+            'isVideo': true,
+            'albumName': 'Pinitu',
+          });
+          setState(() {
+            _notificationMessage = 'Video saved to Gallery';
+            _notificationIcon = Icons.check;
+          });
+        } catch (e) {
+          setState(() {
+            _notificationMessage = 'Failed to save: $e';
+            _notificationIcon = Icons.error;
+          });
+        }
+      } else {
+        // Save image to gallery
+        final response = await Dio().get(
+          widget.pin.mediaUrl,
+          options: Options(
+            responseType: ResponseType.bytes,
+            headers: const {
+              'User-Agent':
+                  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            },
+          ),
         );
-        if (result['isSuccess']) {
+        try {
+          await _channel.invokeMethod('saveToAlbum', {
+            'bytes': response.data,
+            'isVideo': false,
+            'albumName': 'Pinitu',
+          });
           setState(() {
             _notificationMessage = 'Image saved to Gallery';
             _notificationIcon = Icons.check;
           });
-        } else {
-          throw Exception('Failed to save to gallery');
+        } catch (e) {
+          setState(() {
+            _notificationMessage = 'Failed to save: $e';
+            _notificationIcon = Icons.error;
+          });
         }
       }
       Future.delayed(const Duration(seconds: 2), () {
@@ -237,7 +242,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
         children: [
           Center(
             child: FittedBox(
-              fit: BoxFit.fitWidth,
+              fit: BoxFit.contain,
               child: SizedBox(
                 width: _videoController!.value.size.width,
                 height: _videoController!.value.size.height,
@@ -283,6 +288,8 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
               const SizedBox(width: 8),
               Text(
                 _notificationMessage,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
