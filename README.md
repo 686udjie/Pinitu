@@ -2,6 +2,19 @@
 
 A Flutter app that authenticates with Pinterest via an in-app WebView, extracts the user's cookies for authenticated requests, and displays the user's Pinterest home feed.
 
+## Screenshots
+
+### Homepage
+
+<img width="739" height="1600" alt="Homepage" src="https://github.com/user-attachments/assets/3409e4cd-a0ad-42e8-b81d-f1a384cd5b59" />
+
+### Search Page
+
+<img width="739" height="1600" alt="Search Page" src="https://github.com/user-attachments/assets/5e8973ee-c340-4963-b1bc-3a7aac014b03" />
+### Settings
+
+<img width="739" height="1600" alt="Settings" src="https://github.com/user-attachments/assets/853c773e-38e9-4228-b264-b60db66e9b4f" />
+
 # Status
 
 The app, as it stands now, is functional and good enough for me. All the features I wanted are implemented. If there’s a feature you’d like, feel free to open an issue or submit a pull request. The only thing left for me to implement is the presets feature for iOS devices, which isn’t very crucial for me at the moment. Hopefully you can find value in this project!
