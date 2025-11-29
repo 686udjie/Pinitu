@@ -98,17 +98,16 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
     _animationController.forward();
     try {
       if (widget.pin.isVideo) {
-        // For videos, save to downloads
-        final dir = await getDownloadsDirectory();
-        if (dir == null) throw Exception('No downloads directory');
+        // For videos, save to gallery
+        final tempDir = await getTemporaryDirectory();
         final uri = Uri.parse(widget.pin.mediaUrl);
         final filename = uri.pathSegments.isNotEmpty
             ? uri.pathSegments.last
-            : 'downloaded_video';
-        final savePath = '${dir.path}/$filename';
+            : 'downloaded_video.mp4';
+        final tempPath = '${tempDir.path}/$filename';
         await Dio().download(
           widget.pin.mediaUrl,
-          savePath,
+          tempPath,
           options: Options(
             headers: const {
               'User-Agent':
@@ -116,10 +115,15 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
             },
           ),
         );
-        setState(() {
-          _notificationMessage = 'Video downloaded to Downloads';
-          _notificationIcon = Icons.check;
-        });
+        final result = await ImageGallerySaver.saveFile(tempPath);
+        if (result['isSuccess']) {
+          setState(() {
+            _notificationMessage = 'Video saved to Gallery';
+            _notificationIcon = Icons.check;
+          });
+        } else {
+          throw Exception('Failed to save to gallery');
+        }
       } else {
         // For images, save to gallery
         final response = await Dio().get(
