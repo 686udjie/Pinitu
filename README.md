@@ -4,17 +4,17 @@ A Flutter app that authenticates with Pinterest via an in-app WebView, extracts 
 
 # Status
 
-The app, as it stands now, works but has no real use case. For now, it just displays the home feed of a user's Pinterest account. My goal for this project is similar to what you can find [here](https://github.com/Notsfsssf/pixez-flutter). I have tested this initial release on both iOS and Android; both should work (on emulators and actual `.ipa` and `.apk` files).
+The app, as it stands now, is functional and good enough for me. All the features I wanted are implemented. If there’s a feature you’d like, feel free to open an issue or submit a pull request. The only thing left for me to implement is the presets feature for iOS devices, which isn’t very crucial for me at the moment. Hopefully you can find value in this project!
 
 # Stuff That Needs Improvement (Roadmap)
 
-- The image quality is very inconsistent. The goal is to achieve the same quality as what you find on Pinterest, which should be possible with the logic I currently have.
+~~The image quality is very inconsistent. The goal is to achieve the same quality as what you find on Pinterest, which should be possible with the logic I currently have.~~ DONE
 
 ~~Image appearance: some images get cropped because I hardcoded the size of each element in the canvas. I need to add logic to make it dynamic because not every image has the same aspect ratio.~~ DONE
 
-~~Once the image quality issue is solved, add a downloader. For now, I am aiming for images only, but video downloads will come later.~~ DONE (vids will come in the future)
+~~Once the image quality issue is solved, add a downloader. For now, I am aiming for images only, but video downloads will come later.~~ DONE
 
-- Add support for videos. This is already implemented, but during testing, no videos were shown. It needs more work.
+~~Add support for videos. This is already implemented, but during testing, no videos were shown. It needs more work.~~ DONE
 
 ~~Add a search feature.~~ DONE
 
