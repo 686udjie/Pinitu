@@ -1,4 +1,6 @@
-import 'package:collection/collection.dart';
+// big thanks to https://github.com/imputnet/cobalt/blob/main/api/src/processing/services/pinterest.js
+
+import 'package:dio/dio.dart';
 import 'package:html/parser.dart' as html_parser;
 
 import '../models/pin.dart';
@@ -6,17 +8,8 @@ import '../models/user_profile.dart';
 
 class PinterestParser {
   static List<PinItem> parseHomeHtml(String html) {
-    final document = html_parser.parse(html);
     final unique = <String>{};
     final items = <PinItem>[];
-
-    String upscaleImageUrl(String url) {
-      if (url.contains('i.pinimg.com')) {
-        // Replace low-res sizes with higher res 736x
-        url = url.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/');
-      }
-      return url;
-    }
 
     bool isLikelyAvatarUrl(String url) {
       // regex to find avatar urls
@@ -29,168 +22,56 @@ class PinterestParser {
           url.contains('userimage');
     }
 
-    // this was added to differentiate from the avatar url. without this the avator would appear
-    // in the homefeed. starting to notice this project is less about api usage but scraping their site
-    // and all this code go booboo.
-    bool isLikelyPinImage(String url) {
-      if (!url.startsWith('http')) return false;
-      if (url.contains('s.pinimg.com')) return false;
-      if (isLikelyAvatarUrl(url)) return false;
-      if (url.contains('i.pinimg.com')) return true;
-      return url.contains('pinimg.com');
+    // Extract images using regex
+    final imageMatches = imageRegex.allMatches(html);
+    for (final match in imageMatches) {
+      final link = match.group(1)!;
+      if (link.endsWith('.jpg') || link.endsWith('.gif')) {
+        final mediaUrl = link.contains('i.pinimg.com')
+            ? link.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
+            : link;
+        final pin = PinItem(
+          id: link.hashCode.toString(),
+          mediaUrl: mediaUrl,
+          isVideo: false,
+        );
+        final canon = pin.canonicalUrl;
+        if (unique.add(canon)) items.add(pin);
+      }
     }
 
-    int? tryParseInt(String? s) => s == null ? null : int.tryParse(s);
-
-    void extractDimensionsFromAttributes(
-      Map<Object, String> attrs,
-      void Function(int? w, int? h) setDims,
-    ) {
-      int? width;
-      int? height;
-      final widthStr = attrs['width'];
-      final heightStr = attrs['height'];
-      if (widthStr != null && heightStr != null) {
-        width = tryParseInt(widthStr);
-        height = tryParseInt(heightStr);
+    // Extract videos using regex from the extractor
+    final videoMatches = videoRegex.allMatches(html);
+    for (final match in videoMatches) {
+      final link = match.group(1)!;
+      if (link.endsWith('.mp4')) {
+        final pin = PinItem(
+          id: link.hashCode.toString(),
+          mediaUrl: link,
+          isVideo: true,
+        );
+        final canon = pin.canonicalUrl;
+        if (unique.add(canon)) items.add(pin);
       }
-      if (width == null || height == null) {
-        final style = attrs['style'] ?? '';
-        final widthMatch = RegExp(r'width:\s*(\d+)px').firstMatch(style);
-        final heightMatch = RegExp(r'height:\s*(\d+)px').firstMatch(style);
-        if (widthMatch != null) width = tryParseInt(widthMatch.group(1));
-        if (heightMatch != null) height = tryParseInt(heightMatch.group(1));
-      }
-      if (width == null || height == null) {
-        final dataWidth = attrs['data-width'];
-        final dataHeight = attrs['data-height'];
-        if (dataWidth != null) width = tryParseInt(dataWidth);
-        if (dataHeight != null) height = tryParseInt(dataHeight);
-      }
-      setDims(width, height);
     }
 
-    // im lazy so i js fetch all urls that have /pin/ in them
-    // TODO: have actually proper logic
+    // Parse images from DOM, only from pin links
+    final document = html_parser.parse(html);
     for (final a in document.getElementsByTagName('a')) {
       final href = a.attributes['href'] ?? '';
       if (!href.contains('/pin/')) continue;
-
-      String? pinId;
-      final m = RegExp(r"/pin/(\d+)").firstMatch(href);
-      if (m != null) pinId = m.group(1);
-
-      // Looks for videos even tho videos dont work
-      // TODO: add video support so this doesnt go to waste
-      final videos = a.getElementsByTagName('video');
-      if (videos.isNotEmpty) {
-        for (final video in videos) {
-          String? src = video.attributes['src'];
-          if (src == null || src.isEmpty) {
-            final sources = video.getElementsByTagName('source');
-            src = sources
-                .firstWhereOrNull(
-                  (s) => (s.attributes['type'] ?? '').contains('video'),
-                )
-                ?.attributes['src'];
-          }
-          if (src == null || src.isEmpty) continue;
-          int? w;
-          int? h;
-          extractDimensionsFromAttributes(video.attributes, (x, y) {
-            w = x;
-            h = y;
-          });
-          final pin = PinItem(
-            id: pinId ?? src.hashCode.toString(),
-            mediaUrl: src,
-            isVideo: true,
-            width: w,
-            height: h,
-          );
-          final canon = pin.canonicalUrl;
-          if (unique.add(canon)) items.add(pin);
-        }
-      }
-
-      // Then look for images inside the anchor
-      final imgs = a.getElementsByTagName('img');
-      for (final img in imgs) {
+      for (final img in a.getElementsByTagName('img')) {
         final src = img.attributes['src'] ?? img.attributes['data-src'] ?? '';
         if (src.isEmpty) continue;
-        if (!isLikelyPinImage(src)) continue;
-        final title = img.attributes['alt'];
-        int? w;
-        int? h;
-        extractDimensionsFromAttributes(img.attributes, (x, y) {
-          w = x;
-          h = y;
-        });
-        final pin = PinItem(
-          id: pinId ?? src.hashCode.toString(),
-          mediaUrl: upscaleImageUrl(src),
-          title: title,
-          isVideo: false,
-          width: w,
-          height: h,
-        );
-        final canon = pin.canonicalUrl;
-        if (unique.add(canon)) items.add(pin);
-        break; // doesnt display the entire anchor, only the first image
-      }
-    }
-
-    // fallback
-    if (items.isEmpty) {
-      // Images
-      for (final img in document.getElementsByTagName('img')) {
-        final src = img.attributes['src'] ?? img.attributes['data-src'] ?? '';
-        if (src.isEmpty) continue;
-        if (!isLikelyPinImage(src)) continue;
-        final title = img.attributes['alt'];
-        int? w;
-        int? h;
-        extractDimensionsFromAttributes(img.attributes, (x, y) {
-          w = x;
-          h = y;
-        });
+        if (!src.contains('i.pinimg.com')) continue;
+        if (isLikelyAvatarUrl(src)) continue;
+        final mediaUrl = src.contains('i.pinimg.com')
+            ? src.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
+            : src;
         final pin = PinItem(
           id: src.hashCode.toString(),
-          mediaUrl: upscaleImageUrl(src),
-          title: title,
+          mediaUrl: mediaUrl,
           isVideo: false,
-          width: w,
-          height: h,
-        );
-        final canon = pin.canonicalUrl;
-        if (unique.add(canon)) items.add(pin);
-      }
-
-      // Videos
-      // TODO: make it work
-      for (final video in document.getElementsByTagName('video')) {
-        String? src = video.attributes['src'];
-        if (src == null || src.isEmpty) {
-          final sources = video.getElementsByTagName('source');
-          src = sources
-              .firstWhereOrNull(
-                (s) => (s.attributes['type'] ?? '').contains('video'),
-              )
-              ?.attributes['src'];
-        }
-        if (src == null || src.isEmpty) continue;
-        int? w;
-        int? h;
-        extractDimensionsFromAttributes(video.attributes, (x, y) {
-          w = x;
-          h = y;
-        });
-        final pin = PinItem(
-          id: src.hashCode.toString(),
-          mediaUrl: src,
-          isVideo: true,
-          width: w,
-          height: h,
         );
         final canon = pin.canonicalUrl;
         if (unique.add(canon)) items.add(pin);
@@ -250,5 +131,95 @@ class PinterestParser {
       bio: (bio == null || bio.isEmpty) ? null : bio,
       avatarUrl: (avatarUrl == null || avatarUrl.isEmpty) ? null : avatarUrl,
     );
+  }
+
+  static final videoRegex = RegExp(
+    r'"url":"(https://v1\.pinimg\.com/videos/.*?)"',
+  );
+  static final imageRegex = RegExp(
+    r'src="(https://i\.pinimg\.com/.*\.(jpg|gif))"',
+  );
+  static final notFoundRegex = RegExp(r'"__typename"\s*:\s*"PinNotFound"');
+  static const String genericUserAgent = 'Mozilla/5.0 (compatible; Pinitu/1.0)';
+
+  static Future<Map<String, dynamic>?> resolveRedirectingURL(String url) async {
+    final dio = Dio();
+    try {
+      final response = await dio.get(
+        url,
+        options: Options(
+          followRedirects: true,
+          validateStatus: (status) => status! < 400,
+        ),
+      );
+      final finalUrl = response.realUri.toString();
+      final match = RegExp(r'/pin/(\d+)').firstMatch(finalUrl);
+      if (match != null) {
+        return {'id': match.group(1)};
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>> parsePin(Map<String, dynamic> o) async {
+    String? id = o['id'];
+    if (id == null && o['shortLink'] != null) {
+      final patternMatch = await resolveRedirectingURL(
+        'https://api.pinterest.com/url_shortener/${o['shortLink']}/redirect/',
+      );
+      id = patternMatch?['id'];
+    }
+    if (id != null && id.contains('--')) id = id.split('--')[1];
+    if (id == null) return {'error': 'fetch.fail'};
+    final dio = Dio();
+    String? html;
+    try {
+      final response = await dio.get(
+        'https://www.pinterest.com/pin/$id/',
+        options: Options(headers: {'user-agent': genericUserAgent}),
+      );
+      html = response.data;
+    } catch (e) {
+      // ignore
+    }
+    if (html == null) return {'error': 'fetch.fail'};
+    final invalidPin = notFoundRegex.hasMatch(html);
+    if (invalidPin) return {'error': 'fetch.empty'};
+    final videoMatches = videoRegex.allMatches(html);
+    String? videoLink;
+    for (final match in videoMatches) {
+      final link = match.group(1)!;
+      if (link.endsWith('.mp4')) {
+        videoLink = link;
+        break;
+      }
+    }
+    if (videoLink != null) {
+      return {
+        'urls': videoLink,
+        'filename': 'pinterest_$id.mp4',
+        'audioFilename': 'pinterest_${id}_audio',
+      };
+    }
+    final imageMatches = imageRegex.allMatches(html);
+    String? imageLink;
+    for (final match in imageMatches) {
+      final link = match.group(1)!;
+      if (link.endsWith('.jpg') || link.endsWith('.gif')) {
+        imageLink = link;
+        break;
+      }
+    }
+    if (imageLink != null) {
+      final imageType = imageLink.endsWith('.gif') ? 'gif' : 'jpg';
+      return {
+        'urls': imageLink,
+        'isPhoto': true,
+        'filename': 'pinterest_$id.$imageType',
+      };
+    }
+    return {'error': 'fetch.empty'};
   }
 }

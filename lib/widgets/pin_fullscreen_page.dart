@@ -21,6 +21,7 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
     with TickerProviderStateMixin {
   VideoPlayerController? _videoController;
   bool _videoInitialized = false;
+  bool _isPlaying = false;
   bool _showNotification = false;
   String _notificationMessage = '';
   IconData _notificationIcon = Icons.download;
@@ -48,12 +49,27 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
       Uri.parse(widget.pin.mediaUrl),
     );
     await controller.initialize();
+    controller.setVolume(1.0);
     controller.setLooping(true);
     setState(() {
       _videoController = controller;
       _videoInitialized = true;
+      _isPlaying = true;
     });
     await controller.play();
+  }
+
+  void _togglePlayPause() {
+    if (_videoController == null) return;
+    setState(() {
+      if (_isPlaying) {
+        _videoController!.pause();
+        _isPlaying = false;
+      } else {
+        _videoController!.play();
+        _isPlaying = true;
+      }
+    });
   }
 
   @override
@@ -193,12 +209,31 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
     if (!_videoInitialized || _videoController == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return FittedBox(
-      fit: BoxFit.contain,
-      child: SizedBox(
-        width: _videoController!.value.size.width,
-        height: _videoController!.value.size.height,
-        child: VideoPlayer(_videoController!),
+    return GestureDetector(
+      onTap: _togglePlayPause,
+      child: Stack(
+        children: [
+          Center(
+            child: FittedBox(
+              fit: BoxFit.fitWidth,
+              child: SizedBox(
+                width: _videoController!.value.size.width,
+                height: _videoController!.value.size.height,
+                child: VideoPlayer(_videoController!),
+              ),
+            ),
+          ),
+          if (!_isPlaying)
+            const Positioned.fill(
+              child: Center(
+                child: Icon(
+                  Icons.play_circle_fill,
+                  size: 64,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

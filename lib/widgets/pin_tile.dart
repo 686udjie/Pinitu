@@ -23,6 +23,14 @@ class _PinTileState extends State<PinTile> {
   bool _videoInitialized = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.pin.isVideo) {
+      _ensureVideo();
+    }
+  }
+
+  @override
   void dispose() {
     _videoController?.dispose();
     super.dispose();
@@ -34,6 +42,7 @@ class _PinTileState extends State<PinTile> {
       Uri.parse(widget.pin.mediaUrl),
     );
     await controller.initialize();
+    controller.setVolume(0.0);
     controller.setLooping(true);
     setState(() {
       _videoController = controller;
@@ -107,7 +116,7 @@ class _PinTileState extends State<PinTile> {
     Widget content;
     if (widget.pin.isVideo) {
       content = Stack(
-        fit: StackFit.expand,
+        fit: StackFit.loose,
         children: [
           _videoInitialized && _videoController != null
               ? FittedBox(
@@ -118,8 +127,9 @@ class _PinTileState extends State<PinTile> {
                     child: VideoPlayer(_videoController!),
                   ),
                 )
-              : GestureDetector(
-                  onTap: _ensureVideo,
+              : SizedBox(
+                  height: 200,
+                  width: double.infinity,
                   child: const ColoredBox(
                     color: Color(0xFFE0DBD9),
                     child: Center(
@@ -150,19 +160,27 @@ class _PinTileState extends State<PinTile> {
           'User-Agent':
               'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
         },
-        placeholder: (c, _) => const ColoredBox(
-          color: Color(0xFFE0DBD9),
-          child: Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+        placeholder: (c, _) => SizedBox(
+          height: 200,
+          width: double.infinity,
+          child: const ColoredBox(
+            color: Color(0xFFE0DBD9),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
           ),
         ),
-        errorWidget: (c, _, __) => const ColoredBox(
-          color: Color(0xFFE0DBD9),
-          child: Center(child: Icon(Icons.broken_image)),
+        errorWidget: (c, _, __) => SizedBox(
+          height: 200,
+          width: double.infinity,
+          child: const ColoredBox(
+            color: Color(0xFFE0DBD9),
+            child: Center(child: Icon(Icons.broken_image)),
+          ),
         ),
       );
     }
