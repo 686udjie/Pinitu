@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/pin.dart';
+import 'download_notification.dart';
 import 'pin_fullscreen_page.dart';
 
 class PinTile extends StatefulWidget {
@@ -57,8 +58,19 @@ class _PinTileState extends State<PinTile> {
   }
 
   Future<void> _downloadImage() async {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(const SnackBar(content: Text('Downloading...')));
+    final overlay = Overlay.of(context);
+    final messageNotifier = ValueNotifier<String>('Downloading...');
+    final iconNotifier = ValueNotifier<IconData>(Icons.download);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => DownloadNotification(
+        messageNotifier: messageNotifier,
+        iconNotifier: iconNotifier,
+      ),
+    );
+    overlay.insert(entry);
+
     try {
       if (widget.pin.isVideo) {
         // Save video to gallery
@@ -78,11 +90,11 @@ class _PinTileState extends State<PinTile> {
             'isVideo': true,
             'albumName': 'Pinitu',
           });
-          messenger.showSnackBar(
-            const SnackBar(content: Text('Video saved to Gallery')),
-          );
+          messageNotifier.value = 'Video saved to Gallery';
+          iconNotifier.value = Icons.check;
         } catch (e) {
-          messenger.showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+          messageNotifier.value = 'Failed to save: $e';
+          iconNotifier.value = Icons.error;
         }
       } else {
         // Save image to gallery
@@ -102,16 +114,21 @@ class _PinTileState extends State<PinTile> {
             'isVideo': false,
             'albumName': 'Pinitu',
           });
-          messenger.showSnackBar(
-            const SnackBar(content: Text('Image saved to Gallery')),
-          );
+          messageNotifier.value = 'Image saved to Gallery';
+          iconNotifier.value = Icons.check;
         } catch (e) {
-          messenger.showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+          messageNotifier.value = 'Failed to save: $e';
+          iconNotifier.value = Icons.error;
         }
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      messageNotifier.value = 'Download failed: $e';
+      iconNotifier.value = Icons.error;
     }
+
+    Future.delayed(const Duration(seconds: 2), () {
+      entry.remove();
+    });
   }
 
   @override

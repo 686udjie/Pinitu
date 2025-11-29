@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/pin.dart';
+import 'download_notification.dart';
 
 class PinFullscreenPage extends StatefulWidget {
   final PinItem pin;
@@ -20,24 +21,11 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
   bool _videoInitialized = false;
   bool _isPlaying = false;
   bool _isMuted = false;
-  bool _showNotification = false;
-  String _notificationMessage = '';
-  IconData _notificationIcon = Icons.download;
-  late AnimationController _animationController;
-  late Animation<Offset> _animation;
   late MethodChannel _channel;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _animation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(
-          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-        );
     _channel = const MethodChannel('com.mousica.pinitu/gallery');
     if (widget.pin.isVideo) {
       _initializeVideo();
@@ -84,17 +72,23 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
   @override
   void dispose() {
     _videoController?.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _downloadMedia() async {
-    setState(() {
-      _showNotification = true;
-      _notificationMessage = 'Downloading...';
-      _notificationIcon = Icons.download;
-    });
-    _animationController.forward();
+    final overlay = Overlay.of(context);
+    final messageNotifier = ValueNotifier<String>('Downloading...');
+    final iconNotifier = ValueNotifier<IconData>(Icons.download);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => DownloadNotification(
+        messageNotifier: messageNotifier,
+        iconNotifier: iconNotifier,
+      ),
+    );
+    overlay.insert(entry);
+
     try {
       if (widget.pin.isVideo) {
         // Save video to gallery
@@ -114,15 +108,11 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
             'isVideo': true,
             'albumName': 'Pinitu',
           });
-          setState(() {
-            _notificationMessage = 'Video saved to Gallery';
-            _notificationIcon = Icons.check;
-          });
+          messageNotifier.value = 'Video saved to Gallery';
+          iconNotifier.value = Icons.check;
         } catch (e) {
-          setState(() {
-            _notificationMessage = 'Failed to save: $e';
-            _notificationIcon = Icons.error;
-          });
+          messageNotifier.value = 'Failed to save: $e';
+          iconNotifier.value = Icons.error;
         }
       } else {
         // Save image to gallery
@@ -142,37 +132,21 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
             'isVideo': false,
             'albumName': 'Pinitu',
           });
-          setState(() {
-            _notificationMessage = 'Image saved to Gallery';
-            _notificationIcon = Icons.check;
-          });
+          messageNotifier.value = 'Image saved to Gallery';
+          iconNotifier.value = Icons.check;
         } catch (e) {
-          setState(() {
-            _notificationMessage = 'Failed to save: $e';
-            _notificationIcon = Icons.error;
-          });
+          messageNotifier.value = 'Failed to save: $e';
+          iconNotifier.value = Icons.error;
         }
       }
-      Future.delayed(const Duration(seconds: 2), () {
-        _animationController.reverse().then((_) {
-          setState(() {
-            _showNotification = false;
-          });
-        });
-      });
     } catch (e) {
-      setState(() {
-        _notificationMessage = 'Download failed: $e';
-        _notificationIcon = Icons.error;
-      });
-      Future.delayed(const Duration(seconds: 2), () {
-        _animationController.reverse().then((_) {
-          setState(() {
-            _showNotification = false;
-          });
-        });
-      });
+      messageNotifier.value = 'Download failed: $e';
+      iconNotifier.value = Icons.error;
     }
+
+    Future.delayed(const Duration(seconds: 2), () {
+      entry.remove();
+    });
   }
 
   @override
@@ -209,7 +183,6 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
           SizedBox.expand(
             child: widget.pin.isVideo ? _buildVideoView() : _buildImageView(),
           ),
-          if (_showNotification) _buildNotification(),
         ],
       ),
     );
@@ -261,42 +234,6 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNotification() {
-    return SlideTransition(
-      position: _animation,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _notificationIcon,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _notificationMessage,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
