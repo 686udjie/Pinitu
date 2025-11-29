@@ -13,9 +13,7 @@ class PinterestParser {
 
     bool isLikelyAvatarUrl(String url) {
       // regex to find avatar urls
-      final avatarSizePattern = RegExp(
-        r"/(60x60|75x75|120x120|140x140|170x|280x280)_RS/",
-      );
+      final avatarSizePattern = RegExp(r"_RS/");
       return avatarSizePattern.hasMatch(url) ||
           url.contains('avatar') ||
           url.contains('profile') ||
@@ -26,6 +24,7 @@ class PinterestParser {
     final imageMatches = imageRegex.allMatches(html);
     for (final match in imageMatches) {
       final link = match.group(1)!;
+      if (isLikelyAvatarUrl(link)) continue;
       if (link.endsWith('.jpg') || link.endsWith('.gif')) {
         final mediaUrl = link.contains('i.pinimg.com')
             ? link.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
@@ -65,6 +64,8 @@ class PinterestParser {
         if (src.isEmpty) continue;
         if (!src.contains('i.pinimg.com')) continue;
         if (isLikelyAvatarUrl(src)) continue;
+        final width = int.tryParse(img.attributes['width'] ?? '');
+        final height = int.tryParse(img.attributes['height'] ?? '');
         final mediaUrl = src.contains('i.pinimg.com')
             ? src.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
             : src;
@@ -72,6 +73,8 @@ class PinterestParser {
           id: src.hashCode.toString(),
           mediaUrl: mediaUrl,
           isVideo: false,
+          width: width,
+          height: height,
         );
         final canon = pin.canonicalUrl;
         if (unique.add(canon)) items.add(pin);
