@@ -11,21 +11,13 @@ A Flutter app that authenticates with Pinterest via an in-app WebView, extracts 
 
 The app, as it stands now, is functional and good enough for me. All the features I wanted are implemented. If there’s a feature you’d like, feel free to open an issue or submit a pull request. The only thing left for me to implement is the presets feature for iOS devices, which isn’t very crucial for me at the moment. Hopefully you can find value in this project!
 
-# Stuff That Needs Improvement (Roadmap)
+# Features
 
-~~The image quality is very inconsistent. The goal is to achieve the same quality as what you find on Pinterest, which should be possible with the logic I currently have.~~ DONE
-
-~~Image appearance: some images get cropped because I hardcoded the size of each element in the canvas. I need to add logic to make it dynamic because not every image has the same aspect ratio.~~ DONE
-
-~~Once the image quality issue is solved, add a downloader. For now, I am aiming for images only, but video downloads will come later.~~ DONE
-
-~~Add support for videos. This is already implemented, but during testing, no videos were shown. It needs more work.~~ DONE
-
-~~Add a search feature.~~ DONE
-
-~~Remove the logout button on the home feed and replace it with navigation buttons (e.g., settings, saved pins, etc.).~~ DONE
-
-~~Add theme options (Material, dark/light mode sync with the system) and add color presets for iOS users because Material theming may not work properly on iOS.~~ DONE (partial, need to add presets for iOS)
+- High-quality image display
+- Video playback support
+- Image and video downloading support
+- Search functionality
+- Light/Dark mode support
 
 # Build Instructions
 
