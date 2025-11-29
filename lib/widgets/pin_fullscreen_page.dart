@@ -17,13 +17,27 @@ class PinFullscreenPage extends StatefulWidget {
   State<PinFullscreenPage> createState() => _PinFullscreenPageState();
 }
 
-class _PinFullscreenPageState extends State<PinFullscreenPage> {
+class _PinFullscreenPageState extends State<PinFullscreenPage>
+    with TickerProviderStateMixin {
   VideoPlayerController? _videoController;
   bool _videoInitialized = false;
+  bool _showNotification = false;
+  String _notificationMessage = '';
+  IconData _notificationIcon = Icons.download;
+  late AnimationController _animationController;
+  late Animation<Offset> _animation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+        );
     if (widget.pin.isVideo) {
       _initializeVideo();
     }
@@ -45,12 +59,17 @@ class _PinFullscreenPageState extends State<PinFullscreenPage> {
   @override
   void dispose() {
     _videoController?.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _downloadMedia() async {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(const SnackBar(content: Text('Downloading...')));
+    setState(() {
+      _showNotification = true;
+      _notificationMessage = 'Downloading...';
+      _notificationIcon = Icons.download;
+    });
+    _animationController.forward();
     try {
       if (widget.pin.isVideo) {
         // For videos, save to downloads
@@ -71,9 +90,10 @@ class _PinFullscreenPageState extends State<PinFullscreenPage> {
             },
           ),
         );
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Video downloaded to Downloads')),
-        );
+        setState(() {
+          _notificationMessage = 'Video downloaded to Downloads';
+          _notificationIcon = Icons.check;
+        });
       } else {
         // For images, save to gallery
         final response = await Dio().get(
@@ -90,15 +110,33 @@ class _PinFullscreenPageState extends State<PinFullscreenPage> {
           Uint8List.fromList(response.data),
         );
         if (result['isSuccess']) {
-          messenger.showSnackBar(
-            const SnackBar(content: Text('Image saved to Gallery')),
-          );
+          setState(() {
+            _notificationMessage = 'Image saved to Gallery';
+            _notificationIcon = Icons.check;
+          });
         } else {
           throw Exception('Failed to save to gallery');
         }
       }
+      Future.delayed(const Duration(seconds: 2), () {
+        _animationController.reverse().then((_) {
+          setState(() {
+            _showNotification = false;
+          });
+        });
+      });
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      setState(() {
+        _notificationMessage = 'Download failed: $e';
+        _notificationIcon = Icons.error;
+      });
+      Future.delayed(const Duration(seconds: 2), () {
+        _animationController.reverse().then((_) {
+          setState(() {
+            _showNotification = false;
+          });
+        });
+      });
     }
   }
 
@@ -123,8 +161,13 @@ class _PinFullscreenPageState extends State<PinFullscreenPage> {
           ),
         ],
       ),
-      body: SizedBox.expand(
-        child: widget.pin.isVideo ? _buildVideoView() : _buildImageView(),
+      body: Stack(
+        children: [
+          SizedBox.expand(
+            child: widget.pin.isVideo ? _buildVideoView() : _buildImageView(),
+          ),
+          if (_showNotification) _buildNotification(),
+        ],
       ),
     );
   }
@@ -155,6 +198,40 @@ class _PinFullscreenPageState extends State<PinFullscreenPage> {
         width: _videoController!.value.size.width,
         height: _videoController!.value.size.height,
         child: VideoPlayer(_videoController!),
+      ),
+    );
+  }
+
+  Widget _buildNotification() {
+    return SlideTransition(
+      position: _animation,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          margin: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _notificationIcon,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _notificationMessage,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
