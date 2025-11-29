@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
@@ -17,6 +18,7 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
   final List<PinItem> _pins = <PinItem>[];
   final Set<String> _seenUrls = <String>{};
   bool _loading = false;
+  bool _refreshing = false;
   int _page = 1;
 
   @override
@@ -29,7 +31,7 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
   }
 
   Future<void> _loadMore({bool reset = false}) async {
-    if (_loading) return;
+    if (_loading || _refreshing) return;
     setState(() {
       _loading = true;
     });
@@ -39,7 +41,9 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
         _seenUrls.clear();
         _page = 1;
       }
-      final html = _page == 1 ? await client.fetchHomeHtml() : await client.fetchHomeHtmlPage(_page);
+      final html = _page == 1
+          ? await client.fetchHomeHtml()
+          : await client.fetchHomeHtmlPage(_page);
       final newPins = PinterestParser.parseHomeHtml(html);
       for (final p in newPins) {
         final key = p.canonicalUrl;
@@ -47,12 +51,60 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
           _pins.add(p);
         }
       }
+      _preloadImages(newPins);
       _page += 1;
     } finally {
       if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() {
+      _refreshing = true;
+    });
+    try {
+      final html = await client.fetchHomeHtml();
+      final newPins = PinterestParser.parseHomeHtml(html);
+      setState(() {
+        _pins.clear();
+        _seenUrls.clear();
+        for (final p in newPins) {
+          final key = p.canonicalUrl;
+          if (_seenUrls.add(key)) {
+            _pins.add(p);
+          }
+        }
+        _page = 2; // Since we loaded page 1
+      });
+      _preloadImages(newPins);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _refreshing = false;
+        });
+      }
+    }
+  }
+
+  void _preloadImages(List<PinItem> pins) {
+    for (final pin in pins) {
+      if (!pin.isVideo) {
+        // Preload image
+        precacheImage(
+          CachedNetworkImageProvider(
+            pin.mediaUrl,
+            headers: const {
+              'User-Agent':
+                  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            },
+          ),
+          context,
+        );
       }
     }
   }
@@ -75,7 +127,7 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
             ElevatedButton(
               onPressed: () => _loadMore(reset: true),
               child: const Text('Reload'),
-            )
+            ),
           ],
         ),
       );
@@ -89,21 +141,38 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
         return false;
       },
       child: RefreshIndicator(
-        onRefresh: () async {
-          await _loadMore(reset: true);
-        },
+        onRefresh: _refresh,
         child: MasonryGridView.count(
           padding: const EdgeInsets.all(8),
           crossAxisCount: 2,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          itemCount: _pins.length,
+          itemCount:
+              _pins.length + (_loading ? 2 : 0), // Add 2 loading placeholders
           itemBuilder: (context, index) {
-            final pin = _pins[index];
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: PinTile(pin: pin),
-            );
+            if (index < _pins.length) {
+              final pin = _pins[index];
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: PinTile(pin: pin),
+              );
+            } else {
+              // Loading placeholder
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 200,
+                  color: const Color(0xFFE0DBD9),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+              );
+            }
           },
         ),
       ),

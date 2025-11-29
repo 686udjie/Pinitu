@@ -113,23 +113,27 @@ class _PinTileState extends State<PinTile> {
 
   @override
   Widget build(BuildContext context) {
+    final aspectRatio =
+        widget.pin.aspectRatio ?? 0.75; // Default aspect ratio if not available
     Widget content;
     if (widget.pin.isVideo) {
       content = Stack(
         fit: StackFit.loose,
         children: [
           _videoInitialized && _videoController != null
-              ? FittedBox(
-                  fit: BoxFit.fitWidth,
-                  child: SizedBox(
-                    width: _videoController!.value.size.width,
-                    height: _videoController!.value.size.height,
-                    child: VideoPlayer(_videoController!),
+              ? AspectRatio(
+                  aspectRatio: aspectRatio,
+                  child: FittedBox(
+                    fit: BoxFit.fitWidth,
+                    child: SizedBox(
+                      width: _videoController!.value.size.width,
+                      height: _videoController!.value.size.height,
+                      child: VideoPlayer(_videoController!),
+                    ),
                   ),
                 )
-              : SizedBox(
-                  height: 200,
-                  width: double.infinity,
+              : AspectRatio(
+                  aspectRatio: aspectRatio,
                   child: const ColoredBox(
                     color: Color(0xFFE0DBD9),
                     child: Center(
@@ -160,9 +164,8 @@ class _PinTileState extends State<PinTile> {
           'User-Agent':
               'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
         },
-        placeholder: (c, _) => SizedBox(
-          height: 200,
-          width: double.infinity,
+        placeholder: (c, _) => AspectRatio(
+          aspectRatio: aspectRatio,
           child: const ColoredBox(
             color: Color(0xFFE0DBD9),
             child: Center(
@@ -174,9 +177,8 @@ class _PinTileState extends State<PinTile> {
             ),
           ),
         ),
-        errorWidget: (c, _, __) => SizedBox(
-          height: 200,
-          width: double.infinity,
+        errorWidget: (c, _, __) => AspectRatio(
+          aspectRatio: aspectRatio,
           child: const ColoredBox(
             color: Color(0xFFE0DBD9),
             child: Center(child: Icon(Icons.broken_image)),
