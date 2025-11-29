@@ -21,7 +21,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Theme.of(
           context,
-        ).colorScheme.onSurface.withOpacity(0.6),
+        ).colorScheme.onSurface.withValues(alpha: 0.6),
         selectedFontSize: 14,
         unselectedFontSize: 14,
         iconSize: 24,
