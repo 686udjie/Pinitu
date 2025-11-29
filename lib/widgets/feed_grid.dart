@@ -16,6 +16,7 @@ class FeedGrid extends StatefulWidget {
 
 class _FeedGridState extends State<FeedGrid> with ClientHandler {
   final List<PinItem> _pins = <PinItem>[];
+  final List<PinItem> _upcomingPins = <PinItem>[];
   final Set<String> _seenUrls = <String>{};
   bool _loading = false;
   bool _refreshing = false;
@@ -26,11 +27,11 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
     super.initState();
     initializeClient().then((_) {
       setState(() {});
-      _loadMore(reset: true);
+      _loadCurrentPage(reset: true).then((_) => _loadUpcoming());
     });
   }
 
-  Future<void> _loadMore({bool reset = false}) async {
+  Future<void> _loadCurrentPage({bool reset = false}) async {
     if (_loading || _refreshing) return;
     setState(() {
       _loading = true;
@@ -38,6 +39,7 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
     try {
       if (reset) {
         _pins.clear();
+        _upcomingPins.clear();
         _seenUrls.clear();
         _page = 1;
       }
@@ -62,6 +64,25 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
     }
   }
 
+  Future<void> _loadUpcoming() async {
+    if (_loading || _refreshing) return;
+    try {
+      final html = await client.fetchHomeHtmlPage(_page);
+      final newPins = PinterestParser.parseHomeHtml(html);
+      _upcomingPins.clear();
+      for (final p in newPins) {
+        final key = p.canonicalUrl;
+        if (_seenUrls.add(key)) {
+          _upcomingPins.add(p);
+        }
+      }
+      _preloadImages(_upcomingPins);
+      _page += 1;
+    } catch (e) {
+      // Silently handle errors for background loading
+    }
+  }
+
   Future<void> _refresh() async {
     if (_refreshing) return;
     setState(() {
@@ -72,6 +93,7 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
       final newPins = PinterestParser.parseHomeHtml(html);
       setState(() {
         _pins.clear();
+        _upcomingPins.clear();
         _seenUrls.clear();
         for (final p in newPins) {
           final key = p.canonicalUrl;
@@ -82,6 +104,7 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
         _page = 2; // Since we loaded page 1
       });
       _preloadImages(newPins);
+      _loadUpcoming();
     } finally {
       if (mounted) {
         setState(() {
@@ -125,7 +148,8 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
             const Text('No pins found.'),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: () => _loadMore(reset: true),
+              onPressed: () =>
+                  _loadCurrentPage(reset: true).then((_) => _loadUpcoming()),
               child: const Text('Reload'),
             ),
           ],
@@ -136,7 +160,15 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
         if (n.metrics.pixels > n.metrics.maxScrollExtent - 800 && !_loading) {
-          _loadMore();
+          if (_upcomingPins.isNotEmpty) {
+            setState(() {
+              _pins.addAll(_upcomingPins);
+              _upcomingPins.clear();
+            });
+            _loadUpcoming();
+          } else {
+            _loadCurrentPage();
+          }
         }
         return false;
       },
