@@ -7,9 +7,9 @@ class PinItem {
   final int? height;
 
   PinItem({
-    required this.id, 
-    required this.mediaUrl, 
-    this.title, 
+    required this.id,
+    required this.mediaUrl,
+    this.title,
     this.isVideo = false,
     this.width,
     this.height,

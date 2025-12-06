@@ -42,10 +42,11 @@ class PinterestParser {
     // Extract videos using regex from the extractor
     final videoMatches = videoRegex.allMatches(html);
     for (final match in videoMatches) {
-      final link = match.group(1)!;
+      final id = match.group(1)!;
+      final link = match.group(2)!;
       if (link.endsWith('.mp4')) {
         final pin = PinItem(
-          id: link.hashCode.toString(),
+          id: id,
           mediaUrl: link,
           isVideo: true,
         );
@@ -137,7 +138,7 @@ class PinterestParser {
   }
 
   static final videoRegex = RegExp(
-    r'"url":"(https://v1\.pinimg\.com/videos/.*?)"',
+    r'"id":"([^"]+)".*?"url":"(https://v1\.pinimg\.com/videos/.*?)"',
   );
   static final imageRegex = RegExp(
     r'src="(https://i\.pinimg\.com/.*\.(jpg|gif))"',

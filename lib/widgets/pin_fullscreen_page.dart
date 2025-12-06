@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/pin.dart';
@@ -164,6 +165,10 @@ class _PinFullscreenPageState extends State<PinFullscreenPage>
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.link, color: Colors.white),
+            onPressed: () => launchUrl(Uri.parse(widget.pin.mediaUrl), mode: LaunchMode.externalApplication),
+          ),
           IconButton(
             icon: const Icon(Icons.download, color: Colors.white),
             onPressed: _downloadMedia,
