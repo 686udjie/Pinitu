@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:provider/provider.dart';
 
+import '../services/preferences_handler.dart';
+import '../services/theme_provider.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../widgets/feed_grid.dart';
 import '../widgets/saved_page.dart';
@@ -15,7 +18,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with PreferencesHandler {
   static const _secureStorage = FlutterSecureStorage();
   bool _hasCookies = false;
   bool _loading = true;
@@ -113,6 +116,7 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onTap: _onItemTapped,
+        showLabels: !context.watch<ThemeProvider>().hideNavbarLabels,
       ),
     );
   }

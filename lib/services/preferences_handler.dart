@@ -63,4 +63,22 @@ mixin PreferencesHandler {
       return 0.0;
     }
   }
+
+  Future<void> saveBool(String key, bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, value);
+    } catch (e) {
+      // Ignore errors when saving preferences
+    }
+  }
+
+  Future<bool> loadBool(String key, {bool defaultValue = false}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(key) ?? defaultValue;
+    } catch (e) {
+      return defaultValue;
+    }
+  }
 }

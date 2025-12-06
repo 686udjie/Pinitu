@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class CustomBottomNavigationBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
+  final bool showLabels;
 
   const CustomBottomNavigationBar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
+    this.showLabels = true,
   });
 
   @override
@@ -25,6 +27,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
         selectedFontSize: 14,
         unselectedFontSize: 14,
         iconSize: 24,
+        showSelectedLabels: showLabels,
+        showUnselectedLabels: showLabels,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),

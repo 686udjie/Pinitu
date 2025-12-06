@@ -3,11 +3,14 @@ import 'preferences_handler.dart';
 
 class ThemeProvider with ChangeNotifier, PreferencesHandler {
   ThemeMode _themeMode = ThemeMode.system;
+  bool _hideNavbarLabels = false;
 
   ThemeMode get themeMode => _themeMode;
+  bool get hideNavbarLabels => _hideNavbarLabels;
 
   ThemeProvider() {
     _loadThemeMode();
+    _loadHideNavbarLabels();
   }
 
   Future<void> _loadThemeMode() async {
@@ -22,6 +25,11 @@ class ThemeProvider with ChangeNotifier, PreferencesHandler {
       default:
         _themeMode = ThemeMode.system;
     }
+    notifyListeners();
+  }
+
+  Future<void> _loadHideNavbarLabels() async {
+    _hideNavbarLabels = await loadBool('hide_navbar_labels');
     notifyListeners();
   }
 
@@ -40,6 +48,12 @@ class ThemeProvider with ChangeNotifier, PreferencesHandler {
         break;
     }
     await saveThemeMode(modeStr);
+    notifyListeners();
+  }
+
+  Future<void> setHideNavbarLabels(bool value) async {
+    _hideNavbarLabels = value;
+    await saveBool('hide_navbar_labels', value);
     notifyListeners();
   }
 }

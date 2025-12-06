@@ -5,6 +5,7 @@ import '../models/user_profile.dart';
 import '../parsers/pinterest_parser.dart';
 import '../services/client_handler.dart';
 import '../services/theme_provider.dart';
+import 'ui_tweaks_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -70,6 +71,7 @@ class _SettingsPageState extends State<SettingsPage> with ClientHandler {
         children: [
           _buildHeader(),
           const SizedBox(height: 16),
+          _buildUITweaksSection(),
           _buildThemeSelector(),
         ],
       ),
@@ -166,6 +168,18 @@ class _SettingsPageState extends State<SettingsPage> with ClientHandler {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildUITweaksSection() {
+    return ListTile(
+      title: const Text('UI Tweaks'),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const UITweaksPage()),
+        );
+      },
     );
   }
 
