@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/pin.dart';
@@ -20,6 +23,7 @@ class _PinTileState extends State<PinTile> {
   VideoPlayerController? _videoController;
   bool _videoInitialized = false;
   late MethodChannel _channel;
+  bool _isLiked = false;
 
   @override
   void initState() {
@@ -28,6 +32,7 @@ class _PinTileState extends State<PinTile> {
     if (widget.pin.isVideo) {
       _ensureVideo();
     }
+    _loadLikedState();
   }
 
   @override
@@ -55,6 +60,26 @@ class _PinTileState extends State<PinTile> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => PinFullscreenPage(pin: widget.pin)),
     );
+  }
+
+  Future<void> _loadLikedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('saved_pins_json') ?? [];
+    final pinJson = jsonEncode(widget.pin.toJson());
+    setState(() => _isLiked = saved.contains(pinJson));
+  }
+
+  Future<void> _toggleLike() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('saved_pins_json') ?? [];
+    final pinJson = jsonEncode(widget.pin.toJson());
+    if (_isLiked) {
+      saved.remove(pinJson);
+    } else {
+      saved.insert(0, pinJson);
+    }
+    await prefs.setStringList('saved_pins_json', saved);
+    setState(() => _isLiked = !_isLiked);
   }
 
   Future<void> _downloadImage() async {
@@ -202,7 +227,28 @@ class _PinTileState extends State<PinTile> {
     return GestureDetector(
       onTap: () => _openFullscreen(context),
       onLongPress: _downloadImage,
-      child: content,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          content,
+          GestureDetector(
+            onTap: _toggleLike,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _isLiked ? Icons.favorite : Icons.favorite_border,
+                    size: 16,
+                    color: _isLiked ? Colors.red : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

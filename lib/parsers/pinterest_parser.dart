@@ -10,7 +10,9 @@ class PinterestParser {
   static List<PinItem> parseHomeHtml(String html) {
     final unique = <String>{};
     final items = <PinItem>[];
-    final pinPreferences = <String, bool>{}; 
+    final pinPreferences = <String, bool>{};
+    final document = html_parser.parse(html);
+
 
     String? extractPinId(String url) {
       final pinMatch = RegExp(r'/pin/(\d+)').firstMatch(url);
@@ -108,7 +110,6 @@ class PinterestParser {
     }
 
     // Parse images from DOM, only from pin links
-    final document = html_parser.parse(html);
     for (final a in document.getElementsByTagName('a')) {
       final href = a.attributes['href'] ?? '';
       if (!href.contains('/pin/')) continue;

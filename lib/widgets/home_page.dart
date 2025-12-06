@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../widgets/bottom_navigation_bar.dart';
 import '../widgets/feed_grid.dart';
+import '../widgets/saved_page.dart';
 import '../widgets/search_page.dart';
 import '../widgets/settings_page.dart';
 import 'pinterest_login_webview_page.dart';
@@ -82,6 +83,7 @@ class _HomePageState extends State<HomePage> {
     final List<Widget> pages = [
       const FeedGrid(),
       const SearchPage(),
+      const SavedPage(),
       const SettingsPage(),
     ];
 
@@ -96,7 +98,9 @@ class _HomePageState extends State<HomePage> {
                   ? 'Home'
                   : _selectedIndex == 1
                       ? 'Search'
-                      : 'Settings',
+                      : _selectedIndex == 2
+                          ? 'Saved'
+                          : 'Settings',
               style: const TextStyle(fontSize: 20),
             ),
           ),
