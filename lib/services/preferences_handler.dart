@@ -45,4 +45,22 @@ mixin PreferencesHandler {
       return 'system';
     }
   }
+
+  Future<void> saveScrollOffset(double offset) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('scroll_offset', offset);
+    } catch (e) {
+      // Ignore errors when saving scroll offset
+    }
+  }
+
+  Future<double> loadScrollOffset() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getDouble('scroll_offset') ?? 0.0;
+    } catch (e) {
+      return 0.0;
+    }
+  }
 }

@@ -5,6 +5,7 @@ class PinItem {
   final bool isVideo;
   final int? width;
   final int? height;
+  final String? thumbnailUrl;
 
   PinItem({
     required this.id,
@@ -13,6 +14,7 @@ class PinItem {
     this.isVideo = false,
     this.width,
     this.height,
+    this.thumbnailUrl,
   });
 
   String get canonicalUrl {

@@ -5,6 +5,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../models/pin.dart';
 import '../parsers/pinterest_parser.dart';
 import '../services/client_handler.dart';
+import '../services/preferences_handler.dart';
 import 'pin_tile.dart';
 
 class FeedGrid extends StatefulWidget {
@@ -14,13 +15,15 @@ class FeedGrid extends StatefulWidget {
   State<FeedGrid> createState() => _FeedGridState();
 }
 
-class _FeedGridState extends State<FeedGrid> with ClientHandler {
+class _FeedGridState extends State<FeedGrid> with ClientHandler, PreferencesHandler {
   final List<PinItem> _pins = <PinItem>[];
   final List<PinItem> _upcomingPins = <PinItem>[];
   final Set<String> _seenUrls = <String>{};
   bool _loading = false;
   bool _refreshing = false;
   int _page = 1;
+  final ScrollController _scrollController = ScrollController();
+  bool _scrollRestored = false;
 
   @override
   void initState() {
@@ -28,7 +31,22 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
     initializeClient().then((_) {
       setState(() {});
       _loadCurrentPage(reset: true).then((_) => _loadUpcoming());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        loadScrollOffset().then((offset) {
+          if (_scrollController.hasClients && !_scrollRestored) {
+            _scrollController.jumpTo(offset);
+            _scrollRestored = true;
+          }
+        });
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    saveScrollOffset(_scrollController.offset);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCurrentPage({bool reset = false}) async {
@@ -184,12 +202,13 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
       child: RefreshIndicator(
         onRefresh: _refresh,
         child: MasonryGridView.count(
+          controller: _scrollController,
           padding: const EdgeInsets.all(8),
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
           itemCount:
-              _pins.length + (_loading ? crossAxisCount : 0), 
+              _pins.length + (_loading ? crossAxisCount : 0),
           itemBuilder: (context, index) {
             if (index < _pins.length) {
               final pin = _pins[index];

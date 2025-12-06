@@ -31,29 +31,6 @@ class PinterestParser {
           url.contains('userimage');
     }
 
-    // Extract images using regex
-    final imageMatches = imageRegex.allMatches(html);
-    for (final match in imageMatches) {
-      final link = match.group(1)!;
-      if (isLikelyAvatarUrl(link)) continue;
-      if (link.endsWith('.jpg') || link.endsWith('.gif')) {
-        final pinId = extractPinId(link) ?? link.hashCode.toString();
-        // Skip pin
-        if (pinPreferences[pinId] == true) continue;
-
-        final mediaUrl = link.contains('i.pinimg.com')
-            ? link.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
-            : link;
-        final pin = PinItem(
-          id: pinId,
-          mediaUrl: mediaUrl,
-          isVideo: false,
-        );
-        final canon = pin.canonicalUrl;
-        if (unique.add(canon)) items.add(pin);
-      }
-    }
-
     // Extract videos using multiple regex patterns
     for (final videoRegex in videoRegexes) {
       final videoMatches = videoRegex.allMatches(html);
@@ -103,9 +80,30 @@ class PinterestParser {
             width: width,
             height: height,
           );
-          final canon = pin.canonicalUrl;
-          if (unique.add(canon)) items.add(pin);
+          if (unique.add(pin.id)) items.add(pin);
         }
+      }
+    }
+
+    // Extract images using regex
+    final imageMatches = imageRegex.allMatches(html);
+    for (final match in imageMatches) {
+      final link = match.group(1)!;
+      if (isLikelyAvatarUrl(link)) continue;
+      if (link.endsWith('.jpg') || link.endsWith('.gif')) {
+        final pinId = extractPinId(link) ?? link.hashCode.toString();
+        // Skip pin
+        if (pinPreferences[pinId] == true) continue;
+
+        final mediaUrl = link.contains('i.pinimg.com')
+            ? link.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
+            : link;
+        final pin = PinItem(
+          id: pinId,
+          mediaUrl: mediaUrl,
+          isVideo: false,
+        );
+        if (unique.add(pin.id)) items.add(pin);
       }
     }
 
@@ -120,18 +118,19 @@ class PinterestParser {
         final src = video.attributes['src'] ?? '';
         if (src.isNotEmpty && (src.endsWith('.mp4') || src.contains('.mp4'))) {
           final pinId = extractPinId(href) ?? extractPinId(src) ?? src.hashCode.toString();
-          pinPreferences[pinId] = true; 
+          pinPreferences[pinId] = true;
           final width = int.tryParse(video.attributes['width'] ?? '');
           final height = int.tryParse(video.attributes['height'] ?? '');
+          final thumbnailUrl = video.attributes['poster'];
           final pin = PinItem(
             id: pinId,
             mediaUrl: src,
             isVideo: true,
             width: width,
             height: height,
+            thumbnailUrl: thumbnailUrl,
           );
-          final canon = pin.canonicalUrl;
-          if (unique.add(canon)) items.add(pin);
+          if (unique.add(pin.id)) items.add(pin);
         }
       }
 
@@ -141,18 +140,19 @@ class PinterestParser {
           final src = source.attributes['src'] ?? '';
           if (src.isNotEmpty && (src.endsWith('.mp4') || src.contains('.mp4'))) {
             final pinId = extractPinId(href) ?? extractPinId(src) ?? src.hashCode.toString();
-            pinPreferences[pinId] = true; 
+            pinPreferences[pinId] = true;
             final width = int.tryParse(video.attributes['width'] ?? '');
             final height = int.tryParse(video.attributes['height'] ?? '');
+            final thumbnailUrl = video.attributes['poster'];
             final pin = PinItem(
               id: pinId,
               mediaUrl: src,
               isVideo: true,
               width: width,
               height: height,
+              thumbnailUrl: thumbnailUrl,
             );
-            final canon = pin.canonicalUrl;
-            if (unique.add(canon)) items.add(pin);
+            if (unique.add(pin.id)) items.add(pin);
           }
         }
       }
@@ -179,8 +179,7 @@ class PinterestParser {
           width: width,
           height: height,
         );
-        final canon = pin.canonicalUrl;
-        if (unique.add(canon)) items.add(pin);
+        if (unique.add(pin.id)) items.add(pin);
       }
     }
 
