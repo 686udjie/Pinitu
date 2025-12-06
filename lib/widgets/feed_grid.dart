@@ -132,6 +132,13 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
     }
   }
 
+  int _getCrossAxisCount(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width > 900) return 4;
+    if (width > 600) return 3;
+    return 2;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!isInitialized) {
@@ -157,6 +164,8 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
       );
     }
 
+    final crossAxisCount = _getCrossAxisCount(context);
+
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
         if (n.metrics.pixels > n.metrics.maxScrollExtent - 800 && !_loading) {
@@ -176,11 +185,11 @@ class _FeedGridState extends State<FeedGrid> with ClientHandler {
         onRefresh: _refresh,
         child: MasonryGridView.count(
           padding: const EdgeInsets.all(8),
-          crossAxisCount: 2,
+          crossAxisCount: crossAxisCount,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
           itemCount:
-              _pins.length + (_loading ? 2 : 0), // Add 2 loading placeholders
+              _pins.length + (_loading ? crossAxisCount : 0), 
           itemBuilder: (context, index) {
             if (index < _pins.length) {
               final pin = _pins[index];
