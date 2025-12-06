@@ -10,6 +10,17 @@ class PinterestParser {
   static List<PinItem> parseHomeHtml(String html) {
     final unique = <String>{};
     final items = <PinItem>[];
+    final pinPreferences = <String, bool>{}; 
+
+    String? extractPinId(String url) {
+      final pinMatch = RegExp(r'/pin/(\d+)').firstMatch(url);
+      if (pinMatch != null) return pinMatch.group(1);
+
+      final mediaMatch = RegExp(r'pinimg\.com/[^/]+/[^/]+/([^/]+)').firstMatch(url);
+      if (mediaMatch != null) return mediaMatch.group(1);
+
+      return null;
+    }
 
     bool isLikelyAvatarUrl(String url) {
       // regex to find avatar urls
@@ -26,11 +37,15 @@ class PinterestParser {
       final link = match.group(1)!;
       if (isLikelyAvatarUrl(link)) continue;
       if (link.endsWith('.jpg') || link.endsWith('.gif')) {
+        final pinId = extractPinId(link) ?? link.hashCode.toString();
+        // Skip pin
+        if (pinPreferences[pinId] == true) continue;
+
         final mediaUrl = link.contains('i.pinimg.com')
             ? link.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
             : link;
         final pin = PinItem(
-          id: link.hashCode.toString(),
+          id: pinId,
           mediaUrl: mediaUrl,
           isVideo: false,
         );
@@ -39,19 +54,58 @@ class PinterestParser {
       }
     }
 
-    // Extract videos using regex from the extractor
-    final videoMatches = videoRegex.allMatches(html);
-    for (final match in videoMatches) {
-      final id = match.group(1)!;
-      final link = match.group(2)!;
-      if (link.endsWith('.mp4')) {
-        final pin = PinItem(
-          id: id,
-          mediaUrl: link,
-          isVideo: true,
-        );
-        final canon = pin.canonicalUrl;
-        if (unique.add(canon)) items.add(pin);
+    // Extract videos using multiple regex patterns
+    for (final videoRegex in videoRegexes) {
+      final videoMatches = videoRegex.allMatches(html);
+      for (final match in videoMatches) {
+        String? pinId;
+        String? link;
+
+        // Handle different capture group arrangements
+        if (match.groupCount >= 2) {
+          // Patterns with both id and url
+          if (videoRegex.pattern.contains('"id":"([^"]+)".*?"url":"')) {
+            // id before url
+            pinId = match.group(1);
+            link = match.group(2);
+          } else if (videoRegex.pattern.contains('"url":".*?"id":"')) {
+            // url before id
+            link = match.group(1);
+            pinId = match.group(2);
+          }
+        } else if (match.groupCount >= 1) {
+          // Patterns with just url
+          link = match.group(1);
+          pinId = extractPinId(link!) ?? link.hashCode.toString();
+        }
+
+        if (link != null && (link.endsWith('.mp4') || link.contains('.mp4'))) {
+          final actualPinId = pinId ?? extractPinId(link) ?? link.hashCode.toString();
+          pinPreferences[actualPinId] = true; // Prefer video for this pin
+
+          // Try to extract dimensions from nearby JSON if available
+          int? width, height;
+          final videoContext = html.substring(
+            match.start > 100 ? match.start - 100 : 0,
+            match.end + 200 < html.length ? match.end + 200 : html.length,
+          );
+
+          final widthMatch = RegExp(r'"width"\s*:\s*(\d+)').firstMatch(videoContext);
+          final heightMatch = RegExp(r'"height"\s*:\s*(\d+)').firstMatch(videoContext);
+
+          if (widthMatch != null) width = int.tryParse(widthMatch.group(1)!);
+          if (heightMatch != null) height = int.tryParse(heightMatch.group(1)!);
+
+          final pin = PinItem(
+            id: actualPinId,
+            mediaUrl: link,
+            isVideo: true,
+            width: width,
+            height: height,
+          );
+          final canon = pin.canonicalUrl;
+          if (unique.add(canon)) items.add(pin);
+        }
       }
     }
 
@@ -60,18 +114,66 @@ class PinterestParser {
     for (final a in document.getElementsByTagName('a')) {
       final href = a.attributes['href'] ?? '';
       if (!href.contains('/pin/')) continue;
+
+      // Check for video elements
+      for (final video in a.getElementsByTagName('video')) {
+        final src = video.attributes['src'] ?? '';
+        if (src.isNotEmpty && (src.endsWith('.mp4') || src.contains('.mp4'))) {
+          final pinId = extractPinId(href) ?? extractPinId(src) ?? src.hashCode.toString();
+          pinPreferences[pinId] = true; 
+          final width = int.tryParse(video.attributes['width'] ?? '');
+          final height = int.tryParse(video.attributes['height'] ?? '');
+          final pin = PinItem(
+            id: pinId,
+            mediaUrl: src,
+            isVideo: true,
+            width: width,
+            height: height,
+          );
+          final canon = pin.canonicalUrl;
+          if (unique.add(canon)) items.add(pin);
+        }
+      }
+
+      // Check for video sources within video tags
+      for (final video in a.getElementsByTagName('video')) {
+        for (final source in video.getElementsByTagName('source')) {
+          final src = source.attributes['src'] ?? '';
+          if (src.isNotEmpty && (src.endsWith('.mp4') || src.contains('.mp4'))) {
+            final pinId = extractPinId(href) ?? extractPinId(src) ?? src.hashCode.toString();
+            pinPreferences[pinId] = true; 
+            final width = int.tryParse(video.attributes['width'] ?? '');
+            final height = int.tryParse(video.attributes['height'] ?? '');
+            final pin = PinItem(
+              id: pinId,
+              mediaUrl: src,
+              isVideo: true,
+              width: width,
+              height: height,
+            );
+            final canon = pin.canonicalUrl;
+            if (unique.add(canon)) items.add(pin);
+          }
+        }
+      }
+
       for (final img in a.getElementsByTagName('img')) {
         final src = img.attributes['src'] ?? img.attributes['data-src'] ?? '';
         if (src.isEmpty) continue;
         if (!src.contains('i.pinimg.com')) continue;
         if (isLikelyAvatarUrl(src)) continue;
+
+        final pinId = extractPinId(href) ?? extractPinId(src) ?? src.hashCode.toString();
+        // Skip pin
+        if (pinPreferences[pinId] == true) continue;
+
         final width = int.tryParse(img.attributes['width'] ?? '');
         final height = int.tryParse(img.attributes['height'] ?? '');
         final mediaUrl = src.contains('i.pinimg.com')
             ? src.replaceAllMapped(RegExp(r'/(\d+)x/'), (match) => '/736x/')
             : src;
         final pin = PinItem(
-          id: src.hashCode.toString(),
+          id: pinId,
           mediaUrl: mediaUrl,
           isVideo: false,
           width: width,
@@ -137,9 +239,20 @@ class PinterestParser {
     );
   }
 
-  static final videoRegex = RegExp(
-    r'"id":"([^"]+)".*?"url":"(https://v1\.pinimg\.com/videos/.*?)"',
-  );
+  static final videoRegexes = [
+    // Original pattern - id before url
+    RegExp(r'"id":"([^"]+)".*?"url":"(https://[^"]*\.pinimg\.com/videos/[^"]*\.mp4[^"]*)"'),
+    // Alternative pattern - url before id
+    RegExp(r'"url":"(https://[^"]*\.pinimg\.com/videos/[^"]*\.mp4[^"]*)".*?"id":"([^"]+)"'),
+    // More flexible pattern for any pinimg video URLs
+    RegExp(r'"url":"(https://[^"]*\.pinimg\.com/videos/[^"]*\.mp4[^"]*)"'),
+    // Pattern for v.pinimg.com domain
+    RegExp(r'"url":"(https://v\.pinterest\.com/videos/[^"]*\.mp4[^"]*)"'),
+    // Pattern for video URLs in different JSON structures
+    RegExp(r'"video_url"\s*:\s*"([^"]*\.mp4[^"]*)"'),
+    // Pattern for video URLs with escaped quotes
+    RegExp(r'"url"\\?\s*:\\?\s*"([^"]*\.mp4[^"]*)"'),
+  ];
   static final imageRegex = RegExp(
     r'src="(https://i\.pinimg\.com/.*\.(jpg|gif))"',
   );
@@ -191,15 +304,50 @@ class PinterestParser {
     if (html == null) return {'error': 'fetch.fail'};
     final invalidPin = notFoundRegex.hasMatch(html);
     if (invalidPin) return {'error': 'fetch.empty'};
-    final videoMatches = videoRegex.allMatches(html);
     String? videoLink;
-    for (final match in videoMatches) {
-      final link = match.group(1)!;
-      if (link.endsWith('.mp4')) {
-        videoLink = link;
-        break;
+    for (final videoRegex in videoRegexes) {
+      final videoMatches = videoRegex.allMatches(html);
+      for (final match in videoMatches) {
+        String? link;
+
+        if (match.groupCount >= 2) {
+          // Patterns with both id and url - get the url (group 2 for most patterns)
+          if (videoRegex.pattern.contains('"id":"([^"]+)".*?"url":"')) {
+            link = match.group(2);
+          } else if (videoRegex.pattern.contains('"url":".*?"id":"')) {
+            link = match.group(1);
+          }
+        } else if (match.groupCount >= 1) {
+          // Patterns with just url
+          link = match.group(1);
+        }
+
+        if (link != null && (link.endsWith('.mp4') || link.contains('.mp4'))) {
+          videoLink = link;
+          break;
+        }
+      }
+      if (videoLink != null) break;
+    }
+    if (videoLink == null) {
+      final document = html_parser.parse(html);
+      for (final video in document.getElementsByTagName('video')) {
+        final src = video.attributes['src'] ?? '';
+        if (src.isNotEmpty && (src.endsWith('.mp4') || src.contains('.mp4'))) {
+          videoLink = src;
+          break;
+        }
+        for (final source in video.getElementsByTagName('source')) {
+          final src = source.attributes['src'] ?? '';
+          if (src.isNotEmpty && (src.endsWith('.mp4') || src.contains('.mp4'))) {
+            videoLink = src;
+            break;
+          }
+        }
+        if (videoLink != null) break;
       }
     }
+
     if (videoLink != null) {
       return {
         'urls': videoLink,

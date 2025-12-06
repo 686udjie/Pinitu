@@ -133,8 +133,10 @@ class _PinTileState extends State<PinTile> {
 
   @override
   Widget build(BuildContext context) {
-    final aspectRatio =
-        widget.pin.aspectRatio ?? 0.75; // Default aspect ratio if not available
+    final aspectRatio = widget.pin.aspectRatio ??
+        (_videoInitialized && _videoController != null
+            ? _videoController!.value.aspectRatio
+            : 0.75); // Use video's actual aspect ratio
     Widget content;
     if (widget.pin.isVideo) {
       content = Stack(
@@ -142,15 +144,8 @@ class _PinTileState extends State<PinTile> {
         children: [
           _videoInitialized && _videoController != null
               ? AspectRatio(
-                  aspectRatio: aspectRatio,
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: SizedBox(
-                      width: _videoController!.value.size.width,
-                      height: _videoController!.value.size.height,
-                      child: VideoPlayer(_videoController!),
-                    ),
-                  ),
+                  aspectRatio: _videoController!.value.aspectRatio,
+                  child: VideoPlayer(_videoController!),
                 )
               : AspectRatio(
                   aspectRatio: aspectRatio,
