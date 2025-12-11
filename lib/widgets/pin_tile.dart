@@ -190,37 +190,79 @@ class _PinTileState extends State<PinTile> {
               child: const Icon(Icons.videocam, size: 16, color: Colors.white),
             ),
           ),
-        ],
-      );
-    } else {
-      content = CachedNetworkImage(
-        imageUrl: widget.pin.mediaUrl,
-        fit: BoxFit.fitWidth,
-        filterQuality: FilterQuality.high,
-        httpHeaders: const {
-          'User-Agent':
-              'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        },
-        placeholder: (c, _) => AspectRatio(
-          aspectRatio: aspectRatio,
-          child: const ColoredBox(
-            color: Color(0xFFE0DBD9),
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+          Positioned(
+            right: 6,
+            bottom: 6,
+            child: GestureDetector(
+              onTap: _toggleLike,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                  size: 24,
+                  color: _isLiked ? Colors.red : Colors.white,
+                ),
               ),
             ),
           ),
-        ),
-        errorWidget: (c, _, __) => AspectRatio(
-          aspectRatio: aspectRatio,
-          child: const ColoredBox(
-            color: Color(0xFFE0DBD9),
-            child: Center(child: Icon(Icons.broken_image)),
+        ],
+      );
+    } else {
+      content = Stack(
+        children: [
+          CachedNetworkImage(
+            imageUrl: widget.pin.mediaUrl,
+            fit: BoxFit.fitWidth,
+            filterQuality: FilterQuality.high,
+            httpHeaders: const {
+              'User-Agent':
+                  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            },
+            placeholder: (c, _) => AspectRatio(
+              aspectRatio: aspectRatio,
+              child: const ColoredBox(
+                color: Color(0xFFE0DBD9),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+            ),
+            errorWidget: (c, _, __) => AspectRatio(
+              aspectRatio: aspectRatio,
+              child: const ColoredBox(
+                color: Color(0xFFE0DBD9),
+                child: Center(child: Icon(Icons.broken_image)),
+              ),
+            ),
           ),
-        ),
+          Positioned(
+            right: 6,
+            bottom: 6,
+            child: GestureDetector(
+              onTap: _toggleLike,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                  size: 24,
+                  color: _isLiked ? Colors.red : Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -231,22 +273,6 @@ class _PinTileState extends State<PinTile> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           content,
-          GestureDetector(
-            onTap: _toggleLike,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _isLiked ? Icons.favorite : Icons.favorite_border,
-                    size: 16,
-                    color: _isLiked ? Colors.red : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
